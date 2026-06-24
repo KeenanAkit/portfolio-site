@@ -32,10 +32,13 @@ const CONTENT_DIR = join(ROOT, 'src', 'content', 'photos');
  * @param {Object} opts.meta        Output of extractExif() for that file.
  * @param {boolean} [opts.dryRun]   Don't upload or write; report what would happen.
  * @param {string}  [opts.slugOverride]  Force a specific slug (default: derive from filename).
+ * @param {string}  [opts.categoryTag]   Category tag from the inbox subfolder
+ *                                        name (e.g. "landscapes"). Merged into
+ *                                        the photo's tags ahead of EXIF keywords.
  *
  * @returns {Promise<{ status: 'added' | 'skipped' | 'failed', slug: string, reason?: string, url?: string, bytes?: number, contentPath?: string }>}
  */
-export async function ingestPhoto({ sourcePath, meta, dryRun = false, slugOverride }) {
+export async function ingestPhoto({ sourcePath, meta, dryRun = false, slugOverride, categoryTag }) {
   const slug = slugOverride ?? slugForFile(sourcePath);
   if (!slug) {
     return { status: 'failed', slug: '', reason: 'could not derive a slug from filename' };
@@ -82,7 +85,7 @@ export async function ingestPhoto({ sourcePath, meta, dryRun = false, slugOverri
   }
 
   await mkdir(dirname(contentPath), { recursive: true });
-  const frontmatter = buildFrontmatter({ slug, url: uploadResult.url, meta });
+  const frontmatter = buildFrontmatter({ slug, url: uploadResult.url, meta, categoryTag });
   await writeFile(contentPath, frontmatter, 'utf8');
 
   return {
@@ -100,7 +103,7 @@ export async function ingestPhoto({ sourcePath, meta, dryRun = false, slugOverri
  *
  * Schema reference: src/content.config.ts > photos collection.
  */
-function buildFrontmatter({ slug, url, meta }) {
+function buildFrontmatter({ slug, url, meta, categoryTag }) {
   const date = meta.date ?? new Date();
   // Format from LOCAL components, not toISOString() — converting to UTC first
   // rolls an evening capture in a negative-UTC zone forward a calendar day.
@@ -115,7 +118,17 @@ function buildFrontmatter({ slug, url, meta }) {
   const focalLength = sanitizeYamlString(meta.focalLength);
   const isFilmScan = meta.isFilmScan === true && meta.scannerBrand;
 
-  const tags = Array.isArray(meta.keywords) ? meta.keywords : [];
+  // The inbox subfolder name is the authoritative category, so it leads the
+  // tag list; EXIF keywords follow. De-dupe case-insensitively so a Lightroom
+  // keyword that matches the folder doesn't double up.
+  const keywords = Array.isArray(meta.keywords) ? meta.keywords : [];
+  const tags = [];
+  for (const t of [categoryTag, ...keywords]) {
+    const v = sanitizeYamlString(t);
+    if (v && !tags.some((existing) => existing.toLowerCase() === v.toLowerCase())) {
+      tags.push(v);
+    }
+  }
   const tagYaml =
     tags.length === 0
       ? '[]'
