@@ -1,0 +1,126 @@
+---
+// Catch-all 404. Mobile gets a friendly retro 404 page. Desktop visitors
+// who land here get a Blue Screen of Death — the easter egg promised in
+// the design doc.
+
+import BaseLayout from '../layouts/BaseLayout.astro';
+import MobileHeader from '../components/mobile/MobileHeader.astro';
+import ContactFooter from '../components/mobile/ContactFooter.astro';
+
+const title = '404 · Keenan Akit';
+const description = "This page doesn't exist.";
+---
+
+<BaseLayout title={title} description={description}>
+  <!-- Mobile: friendly retro 404 -->
+  <MobileHeader tagline="Not found" />
+  <main id="main" class="mobile-404" data-only="mobile">
+    <h1>404</h1>
+    <p>The page you were looking for isn't here.</p>
+    <p>
+      <a href="/" class="btn-win98">Go home</a>
+    </p>
+  </main>
+  <ContactFooter />
+
+  <!-- Desktop: BSOD -->
+  <section class="bsod" data-only="desktop" role="alert" aria-label="Stop error">
+    <div class="bsod-inner">
+      <p class="header">A problem has been detected and KPort has been shut down to prevent damage to your computer.</p>
+      <p>The page you requested could not be located on this server.</p>
+
+      <p>If this is the first time you've seen this Stop error screen, type the URL again. If this screen appears again, follow these steps:</p>
+
+      <p>Check to make sure any new portfolio routes are properly published. If this is a new installation, ask Keenan to add a page at the URL you tried.</p>
+
+      <p>If problems continue, disable or remove the newly added content. Disable BIOS memory options such as caching or shadowing.</p>
+
+      <p class="tech">Technical information:</p>
+      <p class="tech">*** STOP: 0x00000404 (0xC0DEFADE, 0xDEADBEEF, 0x00000000, 0xFFFFFFFF)</p>
+
+      <p>Beginning dump of physical memory<br />Physical memory dump complete.</p>
+
+      <p>Contact <a href="mailto:keenanakit@gmail.com">keenanakit@gmail.com</a> or your system administrator.</p>
+
+      <p class="press"><a href="/">Press any key to continue _</a></p>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  /* Mobile 404 */
+  .mobile-404 {
+    padding: var(--space-7) var(--space-5);
+    max-width: 480px;
+    margin: 0 auto;
+    text-align: center;
+  }
+  .mobile-404 h1 {
+    font-size: 4rem;
+    margin: 0 0 var(--space-3);
+    color: var(--color-text-primary);
+  }
+  .mobile-404 p {
+    margin: 0 0 var(--space-4);
+    color: var(--color-text-secondary);
+  }
+
+  /* BSOD */
+  .bsod {
+    min-height: 100vh;
+    background: #0000aa;
+    color: #ffffff;
+    padding: 10vh var(--space-7);
+    font-family: 'Lucida Console', 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .bsod-inner {
+    max-width: 920px;
+    margin: 0 auto;
+  }
+
+  .bsod p {
+    margin: 0 0 1.2em;
+  }
+
+  .bsod .header {
+    margin-bottom: 1.5em;
+  }
+
+  .bsod .tech {
+    font-family: 'Lucida Console', 'Courier New', monospace;
+    margin-bottom: 0.4em;
+  }
+
+  .bsod .press {
+    margin-top: 2em;
+    text-align: center;
+  }
+
+  .bsod a {
+    color: #ffffff;
+    text-decoration: underline;
+  }
+
+  .bsod a:hover {
+    text-decoration: none;
+  }
+
+  .bsod .press a {
+    animation: bsod-blink 1s steps(2, jump-none) infinite;
+  }
+
+  @keyframes bsod-blink {
+    50% {
+      opacity: 0.4;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .bsod .press a {
+      animation: none;
+    }
+  }
+</style>

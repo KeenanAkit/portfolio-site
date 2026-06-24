@@ -1,0 +1,229 @@
+---
+// /photos/category/[slug]/[photoSlug] — category + lightbox.
+//
+// On desktop: useUrlSync opens Photos.exe in interior mode with both `category`
+// and `selectedSlug` set, so <PhotosGallery> renders its lightbox view under
+// the category's lighting variant. The mobile DOM below is the SSR fallback,
+// matching /photos/gallery/[slug] except the back-link returns to the category.
+
+import BaseLayout from '../../../../layouts/BaseLayout.astro';
+import MobileHeader from '../../../../components/mobile/MobileHeader.astro';
+import ContactFooter from '../../../../components/mobile/ContactFooter.astro';
+import { Image, getImage } from 'astro:assets';
+import { getCollection, render } from 'astro:content';
+
+import { Desktop } from '../../../../components/desktop/Desktop';
+import { loadDesktopData } from '../../../../lib/desktop-data';
+import { displayTitle } from '../../../../lib/photo-display';
+import '../../../../styles/desktop.css';
+
+export async function getStaticPaths() {
+  const cats = await getCollection('collections');
+  const allPhotos = await getCollection('photos');
+
+  // For each category, enumerate its matched photos so Astro builds one
+  // static page per (category, photo) pair. Photos that no category matches
+  // simply don't appear here — they live at /photos/gallery/[slug] instead.
+  const paths: { params: { slug: string; photoSlug: string }; props: { category: typeof cats[number]; photo: typeof allPhotos[number] } }[] = [];
+
+  for (const c of cats) {
+    const f = c.data.filter;
+    const matched =
+      'tag' in f
+        ? allPhotos.filter((p) => p.data.tags.includes(f.tag))
+        : allPhotos.filter((p) => f.slugs.includes(p.id));
+    for (const photo of matched) {
+      paths.push({
+        params: { slug: c.id, photoSlug: photo.id },
+        props: { category: c, photo },
+      });
+    }
+  }
+
+  return paths;
+}
+
+const { category, photo } = Astro.props;
+const { slug } = Astro.params;
+const { Content } = await render(photo);
+
+const fmtDate = (d: Date) =>
+  d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+const shownTitle = displayTitle(photo.data.title, photo.id);
+const title = `${shownTitle ?? 'Photograph'} · ${category.data.title} · Keenan Akit`;
+const description = photo.data.caption ?? `Photograph by Keenan Akit.`;
+
+const og = await getImage({
+  src: photo.data.image,
+  format: 'jpeg',
+  width: 1200,
+  height: 630,
+  quality: 85,
+});
+
+const { photos: photoEntries, projects: projectEntries, posts: postEntries, categories: categoryEntries } =
+  await loadDesktopData();
+---
+
+<BaseLayout title={title} description={description} ogImage={og.src}>
+  <MobileHeader tagline={category.data.title} />
+  <main id="main" class="photo-page" data-only="mobile">
+    <a href={`/photos/category/${slug}`} class="back-link" data-astro-prefetch>
+      ← {category.data.title}
+    </a>
+
+    <figure>
+      <Image
+        src={photo.data.image}
+        alt={photo.data.caption ?? shownTitle ?? 'Photograph by Keenan Akit'}
+        inferSize
+        widths={[480, 720, 960, 1280, 1600]}
+        sizes="(min-width: 720px) 720px, 100vw"
+        format="avif"
+        quality={80}
+        loading="eager"
+        class="photo"
+      />
+      <figcaption>
+        {shownTitle && <h1>{shownTitle}</h1>}
+        {photo.data.caption && <p class="caption">{photo.data.caption}</p>}
+        <dl class="meta">
+          <div>
+            <dt>Date</dt>
+            <dd class="tnum">{fmtDate(photo.data.date)}</dd>
+          </div>
+          {photo.data.location && (
+            <div>
+              <dt>Location</dt>
+              <dd>{photo.data.location}</dd>
+            </div>
+          )}
+          {photo.data.camera && (
+            <div>
+              <dt>Camera</dt>
+              <dd>{photo.data.camera}</dd>
+            </div>
+          )}
+          {photo.data.lens && (
+            <div>
+              <dt>Lens</dt>
+              <dd>{photo.data.lens}</dd>
+            </div>
+          )}
+          {photo.data.settings?.aperture && (
+            <div>
+              <dt>Aperture</dt>
+              <dd>{photo.data.settings.aperture}</dd>
+            </div>
+          )}
+          {photo.data.settings?.shutter && (
+            <div>
+              <dt>Shutter</dt>
+              <dd>{photo.data.settings.shutter}</dd>
+            </div>
+          )}
+          {photo.data.settings?.iso !== undefined && (
+            <div>
+              <dt>ISO</dt>
+              <dd class="tnum">{photo.data.settings.iso}</dd>
+            </div>
+          )}
+          {photo.data.settings?.focalLength && (
+            <div>
+              <dt>Focal length</dt>
+              <dd>{photo.data.settings.focalLength}</dd>
+            </div>
+          )}
+        </dl>
+      </figcaption>
+    </figure>
+
+    <article class="body">
+      <Content />
+    </article>
+  </main>
+  <ContactFooter />
+
+  <div data-only="desktop">
+    <Desktop
+      photos={photoEntries}
+      projects={projectEntries}
+      posts={postEntries}
+      categories={categoryEntries}
+      client:only="react"
+    />
+  </div>
+</BaseLayout>
+
+<style>
+  .photo-page {
+    padding: var(--space-4) 0 var(--space-7);
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  .back-link {
+    display: inline-block;
+    padding: 0 var(--space-5);
+    font-size: var(--text-meta);
+    color: var(--color-link);
+    text-decoration: none;
+    margin-bottom: var(--space-3);
+  }
+
+  figure {
+    margin: 0;
+  }
+
+  .photo {
+    display: block;
+    width: 100%;
+    height: auto;
+    background: var(--color-bg-elevated);
+  }
+
+  figcaption {
+    padding: var(--space-5);
+  }
+
+  h1 {
+    margin: 0 0 var(--space-2);
+  }
+
+  .caption {
+    margin: 0 0 var(--space-4);
+    color: var(--color-text-secondary);
+    line-height: 1.55;
+  }
+
+  .meta {
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-2) var(--space-4);
+  }
+  .meta > div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .meta dt {
+    font-size: var(--text-caption);
+    color: var(--color-text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .meta dd {
+    margin: 0;
+    font-size: var(--text-meta);
+    color: var(--color-text-primary);
+  }
+
+  .body {
+    padding: 0 var(--space-5);
+    margin-top: var(--space-5);
+    line-height: 1.6;
+    color: var(--color-text-primary);
+  }
+</style>

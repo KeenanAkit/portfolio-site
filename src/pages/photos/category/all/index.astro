@@ -1,0 +1,136 @@
+---
+// /photos/category/all — the "All Photos" pseudo-category.
+//
+// `all` doesn't live in src/content/collections; it's a synthetic landing
+// page generated here so the categories landing's first card has a real
+// URL to point at. The React desktop reads category='all' from url-sync
+// and renders an unfiltered photo grid using the default dusk lighting.
+
+import BaseLayout from '../../../../layouts/BaseLayout.astro';
+import MobileHeader from '../../../../components/mobile/MobileHeader.astro';
+import ContactFooter from '../../../../components/mobile/ContactFooter.astro';
+import { Image } from 'astro:assets';
+import { getCollection } from 'astro:content';
+
+import { Desktop } from '../../../../components/desktop/Desktop';
+import { loadDesktopData } from '../../../../lib/desktop-data';
+import '../../../../styles/desktop.css';
+
+const photos = (await getCollection('photos')).sort(
+  (a, b) => b.data.date.getTime() - a.data.date.getTime()
+);
+
+const {
+  photos: photoEntries,
+  projects: projectEntries,
+  posts: postEntries,
+  categories: categoryEntries,
+} = await loadDesktopData();
+
+const title = 'All Photos · Keenan Akit';
+const description =
+  'Every photograph in the gallery. Landscapes, portraits, street, travel, and the in-between.';
+---
+
+<BaseLayout title={title} description={description}>
+  <MobileHeader tagline="All Photos" />
+  <main id="main" class="category-page" data-only="mobile">
+    <a href="/photos/gallery" class="back-link" data-astro-prefetch>← Gallery</a>
+    <header class="header">
+      <h1>All Photos</h1>
+      <p class="description">{description}</p>
+    </header>
+
+    {
+      photos.length === 0 ? (
+        <p class="empty">No photos yet.</p>
+      ) : (
+        <ul class="photo-grid">
+          {photos.map((p) => (
+            <li>
+              <a href={`/photos/category/all/${p.id}`} data-astro-prefetch>
+                <Image
+                  src={p.data.image}
+                  alt={p.data.caption ?? p.data.title}
+                  inferSize
+                  widths={[240, 480, 640]}
+                  sizes="(min-width: 480px) 240px, 50vw"
+                  format="avif"
+                  quality={70}
+                  loading="lazy"
+                  class="thumb"
+                />
+              </a>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+  </main>
+  <ContactFooter />
+
+  <div data-only="desktop">
+    <Desktop
+      photos={photoEntries}
+      projects={projectEntries}
+      posts={postEntries}
+      categories={categoryEntries}
+      client:only="react"
+    />
+  </div>
+</BaseLayout>
+
+<style>
+  .category-page {
+    padding: var(--space-4) 0 var(--space-7);
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  .back-link {
+    display: inline-block;
+    padding: 0 var(--space-5);
+    font-size: var(--text-meta);
+    color: var(--color-link);
+    text-decoration: none;
+    margin-bottom: var(--space-3);
+  }
+
+  .header {
+    padding: 0 var(--space-5);
+    margin-bottom: var(--space-5);
+  }
+
+  h1 {
+    margin: 0 0 var(--space-2);
+  }
+
+  .description {
+    margin: 0;
+    color: var(--color-text-secondary);
+    line-height: 1.55;
+  }
+
+  .photo-grid {
+    list-style: none;
+    padding: 0 var(--space-5);
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-3);
+  }
+
+  .thumb {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border);
+  }
+
+  .empty {
+    padding: 0 var(--space-5);
+    color: var(--color-text-secondary);
+    font-size: var(--text-meta);
+  }
+</style>

@@ -1,0 +1,31 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import MobileHeader from '../../components/mobile/MobileHeader.astro';
+import PostList from '../../components/mobile/PostList.astro';
+import ContactFooter from '../../components/mobile/ContactFooter.astro';
+
+const title = 'Blog · Keenan Akit';
+const description = 'Posts on photography, code, and the in-between.';
+---
+
+<BaseLayout title={title} description={description}>
+  <MobileHeader tagline="Blog" />
+  <main id="main" class="blog-index" data-only="mobile">
+    <h1>Blog</h1>
+    <PostList showHeading={false} />
+  </main>
+  <ContactFooter />
+</BaseLayout>
+
+<style>
+  .blog-index {
+    padding: var(--space-5) 0 var(--space-7);
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  .blog-index h1 {
+    padding: 0 var(--space-5);
+    margin: 0 0 var(--space-2);
+  }
+</style>

@@ -1,0 +1,168 @@
+---
+// /photos/gallery — interior categories landing.
+//
+// On desktop: useUrlSync sees `/photos/gallery` (mode=interior, category=null)
+// and PhotosGallery renders its CategoriesLanding branch — 5 collection
+// exhibits + an "All Photos" card. The Astro mobile DOM mirrors that
+// structure with link cards so deep-links work without JS.
+
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import MobileHeader from '../../../components/mobile/MobileHeader.astro';
+import ContactFooter from '../../../components/mobile/ContactFooter.astro';
+import { Image } from 'astro:assets';
+import { getCollection } from 'astro:content';
+
+import { Desktop } from '../../../components/desktop/Desktop';
+import { loadDesktopData } from '../../../lib/desktop-data';
+import '../../../styles/desktop.css';
+
+const collections = (await getCollection('collections')).sort(
+  (a, b) => a.data.order - b.data.order
+);
+
+const allPhotos = (await getCollection('photos')).sort(
+  (a, b) => b.data.date.getTime() - a.data.date.getTime()
+);
+const recentPhoto = allPhotos[0];
+
+// Auto-pick cover when frontmatter doesn't set one. Mirrors
+// src/lib/desktop-data.ts > pickCategoryCoverSrc().
+function coverForCategory(data: typeof collections[number]['data']): string | null {
+  if (data.cover) return data.cover;
+  const f = data.filter;
+  const match =
+    'tag' in f
+      ? allPhotos.find((p) => p.data.tags.includes(f.tag))
+      : allPhotos.find((p) => f.slugs.includes(p.id));
+  return match?.data.image ?? null;
+}
+
+const {
+  photos: photoEntries,
+  projects: projectEntries,
+  posts: postEntries,
+  categories: categoryEntries,
+} = await loadDesktopData();
+
+const title = 'Gallery · Keenan Akit';
+const description =
+  'Five exhibits across the gallery: landscapes, street, portraits, black and white, and travel.';
+---
+
+<BaseLayout title={title} description={description}>
+  <MobileHeader tagline="Gallery" />
+  <main id="main" class="gallery-landing" data-only="mobile">
+    <h1>Gallery</h1>
+    <p class="lead">Pick an exhibit.</p>
+
+    <ul class="cat-grid">
+      <li>
+        <a href="/photos/category/all" data-astro-prefetch class="cat-card">
+          {recentPhoto && (
+            <Image
+              src={recentPhoto.data.image}
+              alt=""
+              inferSize
+              widths={[240, 480]}
+              sizes="(min-width: 480px) 240px, 50vw"
+              format="avif"
+              quality={70}
+              loading="lazy"
+              class="cat-cover"
+            />
+          )}
+          <span class="cat-title">All Photos</span>
+        </a>
+      </li>
+      {collections.map((c) => {
+        const cover = coverForCategory(c.data);
+        return (
+          <li>
+            <a
+              href={`/photos/category/${c.id}`}
+              data-astro-prefetch
+              class="cat-card"
+            >
+              {cover && (
+                <Image
+                  src={cover}
+                  alt=""
+                  inferSize
+                  widths={[240, 480]}
+                  sizes="(min-width: 480px) 240px, 50vw"
+                  format="avif"
+                  quality={70}
+                  loading="lazy"
+                  class="cat-cover"
+                />
+              )}
+              <span class="cat-title">{c.data.title}</span>
+            </a>
+          </li>
+        );
+      })}
+    </ul>
+  </main>
+  <ContactFooter />
+
+  <div data-only="desktop">
+    <Desktop
+      photos={photoEntries}
+      projects={projectEntries}
+      posts={postEntries}
+      categories={categoryEntries}
+      client:only="react"
+    />
+  </div>
+</BaseLayout>
+
+<style>
+  .gallery-landing {
+    padding: var(--space-5) var(--space-5) var(--space-7);
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    margin: 0 0 var(--space-2);
+  }
+
+  .lead {
+    margin: 0 0 var(--space-5);
+    color: var(--color-text-secondary);
+  }
+
+  .cat-grid {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-3);
+  }
+
+  .cat-card {
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg);
+    overflow: hidden;
+  }
+
+  .cat-cover {
+    display: block;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    background: var(--color-bg-elevated);
+  }
+
+  .cat-title {
+    display: block;
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-meta);
+    font-weight: 500;
+  }
+</style>

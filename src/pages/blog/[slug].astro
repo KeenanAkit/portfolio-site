@@ -1,0 +1,148 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import MobileHeader from '../../components/mobile/MobileHeader.astro';
+import ContactFooter from '../../components/mobile/ContactFooter.astro';
+import { getCollection, render } from 'astro:content';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('posts', (p) => !p.data.draft);
+  return posts.map((post) => ({
+    params: { slug: post.id },
+    props: { post },
+  }));
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+
+const fmtDate = (d: Date) =>
+  d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+const title = `${post.data.title} · Keenan Akit`;
+const description = post.data.excerpt;
+---
+
+<BaseLayout title={title} description={description}>
+  <MobileHeader tagline="Blog" />
+  <main id="main" class="post-page" data-only="mobile">
+    <a href="/blog" class="back-link" data-astro-prefetch>← All posts</a>
+
+    <article>
+      <header class="post-header">
+        <h1>{post.data.title}</h1>
+        <p class="meta">
+          <time class="tnum" datetime={post.data.date.toISOString()}>
+            {fmtDate(post.data.date)}
+          </time>
+          {post.data.tags.length > 0 && (
+            <span class="tags">
+              {post.data.tags.map((t) => <span class="tag">{t}</span>)}
+            </span>
+          )}
+        </p>
+      </header>
+
+      <div class="prose">
+        <Content />
+      </div>
+    </article>
+  </main>
+  <ContactFooter />
+</BaseLayout>
+
+<style>
+  .post-page {
+    padding: var(--space-4) 0 var(--space-7);
+    max-width: 680px;
+    margin: 0 auto;
+  }
+
+  .back-link {
+    display: inline-block;
+    padding: 0 var(--space-5);
+    font-size: var(--text-meta);
+    color: var(--color-link);
+    text-decoration: none;
+    margin-bottom: var(--space-3);
+  }
+
+  .post-header {
+    padding: 0 var(--space-5);
+    margin-bottom: var(--space-5);
+  }
+
+  h1 {
+    margin: 0 0 var(--space-3);
+  }
+
+  .meta {
+    margin: 0;
+    font-size: var(--text-meta);
+    color: var(--color-text-tertiary);
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+  }
+
+  .tag {
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border);
+    padding: 0 var(--space-2);
+    font-size: var(--text-caption);
+    color: var(--color-text-secondary);
+    margin-right: var(--space-1);
+  }
+
+  .prose {
+    padding: 0 var(--space-5);
+    line-height: 1.7;
+    color: var(--color-text-primary);
+    font-size: 1.0625rem;
+  }
+  .prose :global(h2) {
+    margin: var(--space-6) 0 var(--space-3);
+    font-size: var(--text-h2);
+  }
+  .prose :global(h3) {
+    margin: var(--space-5) 0 var(--space-2);
+    font-size: var(--text-h3);
+  }
+  .prose :global(p) {
+    margin: 0 0 var(--space-4);
+  }
+  .prose :global(ul),
+  .prose :global(ol) {
+    padding-left: var(--space-5);
+    margin: 0 0 var(--space-4);
+  }
+  .prose :global(blockquote) {
+    margin: var(--space-4) 0;
+    padding-left: var(--space-4);
+    border-left: 3px solid var(--color-accent);
+    color: var(--color-text-secondary);
+    font-style: italic;
+  }
+  .prose :global(code) {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    background: var(--color-bg-elevated);
+    padding: 2px 6px;
+    font-size: 0.9em;
+    border: 1px solid var(--color-border);
+  }
+  .prose :global(pre) {
+    background: #1a1a1a;
+    color: #f0f0f0;
+    padding: var(--space-4);
+    overflow-x: auto;
+    margin: 0 calc(-1 * var(--space-5)) var(--space-4);
+    font-size: var(--text-meta);
+    line-height: 1.5;
+  }
+  .prose :global(pre code) {
+    background: transparent;
+    border: none;
+    padding: 0;
+    color: inherit;
+  }
+</style>

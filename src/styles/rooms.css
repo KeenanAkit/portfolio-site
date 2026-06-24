@@ -1,0 +1,1086 @@
+/*
+  Rooms styles. CSS custom properties + skeleton selectors for the three
+  pixel-art rooms (Gallery, Workshop, Study) and the Photos.exe storefront.
+
+  Loaded by BaseLayout.astro alongside global.css so Astro mobile pages and
+  React desktop islands inherit the same tokens.
+*/
+
+:root {
+  /* ---------- Shared room palette (16 colors, locked .gpl) ---------- */
+  --room-cream-light: #fff3d0;
+  --room-cream-mid: #f0deac;
+  --room-cream-deep: #e4d2a0;
+
+  --room-sage-mid: #7a8a5a;
+  --room-sage-deep: #5a6e3a;
+  --room-foliage-mid: #4a6e2a;
+  --room-pine-dark: #3a4a28;
+
+  --room-oak-warm: #b07840;
+  --room-oak-mid: #8a5828;
+  --room-oak-dark: #6a4020;
+  --room-walnut: #4a2810;
+  --room-walnut-deep: #2a1808;
+
+  --room-antique-gold: #c49a3d;
+  --room-brass-shadow: #4a3608;
+  --room-brass-highlight: #e8c46a;
+
+  --room-paper: #f5dc6a;
+  --room-paper-line: #c8ac4a;
+  --room-blueprint-bg: #1a3a6e;
+
+  /* Default Gallery lighting = warm afternoon Gunther (dusk preset). */
+  --gallery-light-dusk-bg-a: #f0deac;
+  --gallery-light-dusk-bg-b: #e4d2a0;
+  --gallery-light-dusk-sconce: rgba(255, 232, 160, 0.45);
+  --gallery-light-dusk-floor-line: rgba(106, 64, 32, 0.55);
+  --gallery-light-dusk-wainscot: #7a8a5a;
+  --gallery-light-dusk-floor: #8a5828;
+
+  --gallery-light-amber-bg-a: #f5c485;
+  --gallery-light-amber-bg-b: #d89a6e;
+  --gallery-light-amber-sconce: rgba(255, 200, 120, 0.55);
+  --gallery-light-amber-floor-line: rgba(140, 80, 40, 0.55);
+  --gallery-light-amber-wainscot: #8a6850;
+  --gallery-light-amber-floor: #6a4020;
+
+  --gallery-light-sodium-bg-a: #6a4828;
+  --gallery-light-sodium-bg-b: #4a3020;
+  --gallery-light-sodium-sconce: rgba(255, 180, 90, 0.55);
+  --gallery-light-sodium-floor-line: rgba(180, 100, 40, 0.5);
+  --gallery-light-sodium-wainscot: #4a3828;
+  --gallery-light-sodium-floor: #4a2810;
+
+  --gallery-light-tungsten-bg-a: #f0d8a8;
+  --gallery-light-tungsten-bg-b: #d8b888;
+  --gallery-light-tungsten-sconce: rgba(255, 220, 150, 0.55);
+  --gallery-light-tungsten-floor-line: rgba(140, 80, 40, 0.55);
+  --gallery-light-tungsten-wainscot: #b07840;
+  --gallery-light-tungsten-floor: #8a5828;
+
+  --gallery-light-moon-bg-a: #d8d0c0;
+  --gallery-light-moon-bg-b: #b0a898;
+  --gallery-light-moon-sconce: rgba(220, 220, 200, 0.5);
+  --gallery-light-moon-floor-line: rgba(80, 72, 60, 0.55);
+  --gallery-light-moon-wainscot: #7a7060;
+  --gallery-light-moon-floor: #5a5048;
+
+  /* ---------- Room layout tokens ---------- */
+  --room-gutter: 24px;
+  --room-grid-gap: 26px 32px;
+  --frame-padding: 7px;
+  --frame-mat-inset: 5px;
+  --picture-light-offset: 12px;
+  --plaque-from-top: 8px;
+  --floor-height: 120px;
+  --wainscot-height: 60px;
+  --bench-from-floor-bot: 14px;
+  --workbench-height: 64px;
+  --desk-height: 60px;
+  --lamp-bottom-offset: 48px;
+
+  /* ---------- Motion tokens ---------- */
+  /* JS code MUST also call motionDuration() from src/lib/motion.ts to
+     guarantee imperative GSAP / canvas RAFs respect prefers-reduced-motion. */
+  --motion-storefront-fade-in: 400ms;
+  --motion-door-swing: 200ms;
+  --motion-room-cross-fade: 400ms;
+  --motion-photo-frame-fade: 300ms;
+  --motion-lightbox-zoom: 350ms;
+  --motion-flicker-swap: 60ms;
+  --motion-dust-mote-fall: 12s;
+  --motion-mug-steam: 4s;
+  --motion-lamp-pulse: 60s;
+  --motion-ease-out: cubic-bezier(0.2, 0, 0.2, 1);
+  --motion-ease-swing: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-storefront-fade-in: 0ms;
+    --motion-door-swing: 0ms;
+    --motion-room-cross-fade: 0ms;
+    --motion-photo-frame-fade: 0ms;
+    --motion-lightbox-zoom: 0ms;
+    --motion-flicker-swap: 0ms;
+    --motion-dust-mote-fall: 0s;
+    --motion-mug-steam: 0s;
+    --motion-lamp-pulse: 0s;
+  }
+}
+
+/* ---------- Skeleton selectors for the rooms ---------- */
+
+.kport-room {
+  /* The shared container that every room (Gallery, Workshop, Study)
+     composes inside the Win98 window-body. Sprite layers position
+     absolutely on top of this. */
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  image-rendering: pixelated;
+}
+
+.kport-room > * {
+  image-rendering: pixelated;
+}
+
+/* Standard view bypass. Hide every pixel-art ornament so AT users
+   and anyone who prefers a clean layout get the original DESIGN.md
+   white photo-first experience. Targets the html attribute (set
+   synchronously in BaseLayout.astro before first paint) so ornaments never
+   flash visible during hydration. */
+html[data-view='standard'] .ornament,
+html[data-view='standard'] [data-ornament] {
+  display: none !important;
+}
+html[data-view='standard'] .kport-room,
+html[data-view='standard'] .kport-storefront {
+  background: var(--color-bg) !important;
+}
+/* Standard view: the painted scene is gone (background reset above) and
+   the transparent shop button would be invisible/unfindable. Hide it
+   entirely and promote the chunky text enter-button (normally mobile-
+   only) to the visible click target. Avoids the dual-button trap where
+   AT users hear two "Enter the gallery" controls. */
+html[data-view='standard'] .kport-storefront {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+}
+html[data-view='standard'] .kport-storefront__shop,
+html[data-view='standard'] .kport-character,
+html[data-view='standard'] .kport-storefront__interact-prompt,
+html[data-view='standard'] .kport-storefront::after {
+  display: none !important;
+}
+html[data-view='standard'] .kport-storefront__enter-button {
+  display: inline-block !important;
+  margin: 40px auto;
+  background: #c0c0c0;
+  color: var(--color-text-primary, #1a1a1a);
+  border: 2px solid;
+  border-color: #ffffff #808080 #808080 #ffffff;
+  box-shadow: inset 1px 1px 0 #dfdfdf, inset -1px -1px 0 #404040;
+  font-family: 'Tahoma', 'Microsoft Sans Serif', sans-serif;
+  font-size: 12px;
+  padding: 0 16px;
+  height: 44px;
+  min-width: 44px;
+  cursor: pointer;
+}
+/* The decorative gilt frame is part of the photo presentation, but in
+   standard mode strip it back to a plain white card so the photo leads. */
+html[data-view='standard'] .kport-gallery__frame {
+  background: var(--color-bg);
+  box-shadow: 0 0 0 1px var(--color-border, #d0d0d0);
+}
+html[data-view='standard'] .kport-gallery__frame::before {
+  display: none;
+}
+html[data-view='standard'] .kport-gallery__frame img {
+  border: 0;
+}
+html[data-view='standard'] .kport-gallery__lightbox {
+  background: var(--color-bg);
+}
+html[data-view='standard'] .kport-gallery__lightbox img {
+  background: var(--color-bg);
+  box-shadow: 0 0 0 1px var(--color-border, #d0d0d0);
+}
+
+/* ---------- Gallery room (Photos.exe interior) ---------- */
+
+.kport-gallery {
+  /* Default lighting is dusk (cozy warm afternoon Gunther). The
+     `--gallery-{slot}` aliases below mean every layer reads a single name
+     and the `data-light` attribute alone swaps the active variant. */
+  --gallery-bg-a: var(--gallery-light-dusk-bg-a);
+  --gallery-bg-b: var(--gallery-light-dusk-bg-b);
+  --gallery-sconce: var(--gallery-light-dusk-sconce);
+  --gallery-floor-line: var(--gallery-light-dusk-floor-line);
+  --gallery-wainscot: var(--gallery-light-dusk-wainscot);
+  --gallery-floor: var(--gallery-light-dusk-floor);
+  background-color: var(--gallery-bg-a);
+}
+
+.kport-gallery[data-light='amber'] {
+  --gallery-bg-a: var(--gallery-light-amber-bg-a);
+  --gallery-bg-b: var(--gallery-light-amber-bg-b);
+  --gallery-sconce: var(--gallery-light-amber-sconce);
+  --gallery-floor-line: var(--gallery-light-amber-floor-line);
+  --gallery-wainscot: var(--gallery-light-amber-wainscot);
+  --gallery-floor: var(--gallery-light-amber-floor);
+}
+.kport-gallery[data-light='sodium'] {
+  --gallery-bg-a: var(--gallery-light-sodium-bg-a);
+  --gallery-bg-b: var(--gallery-light-sodium-bg-b);
+  --gallery-sconce: var(--gallery-light-sodium-sconce);
+  --gallery-floor-line: var(--gallery-light-sodium-floor-line);
+  --gallery-wainscot: var(--gallery-light-sodium-wainscot);
+  --gallery-floor: var(--gallery-light-sodium-floor);
+}
+.kport-gallery[data-light='tungsten'] {
+  --gallery-bg-a: var(--gallery-light-tungsten-bg-a);
+  --gallery-bg-b: var(--gallery-light-tungsten-bg-b);
+  --gallery-sconce: var(--gallery-light-tungsten-sconce);
+  --gallery-floor-line: var(--gallery-light-tungsten-floor-line);
+  --gallery-wainscot: var(--gallery-light-tungsten-wainscot);
+  --gallery-floor: var(--gallery-light-tungsten-floor);
+}
+.kport-gallery[data-light='moon'] {
+  --gallery-bg-a: var(--gallery-light-moon-bg-a);
+  --gallery-bg-b: var(--gallery-light-moon-bg-b);
+  --gallery-sconce: var(--gallery-light-moon-sconce);
+  --gallery-floor-line: var(--gallery-light-moon-floor-line);
+  --gallery-wainscot: var(--gallery-light-moon-wainscot);
+  --gallery-floor: var(--gallery-light-moon-floor);
+}
+
+/* ---------- Gallery composition ---------- */
+
+/* Layer 1: Wall texture. The B1 sprite paints subtle horizontal banding
+   that reads as hand-painted plaster. mix-blend-mode: multiply lets the
+   active lighting variant's bg color (cream / amber / sodium / etc.) tint
+   the texture so the wall shifts mood per category without needing a
+   separate sprite per variant. */
+.kport-gallery__wall {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background-image: url('/assets/rooms/wall-gallery-tile.png');
+  background-size: 64px 64px;
+  background-repeat: repeat;
+  image-rendering: pixelated;
+  mix-blend-mode: multiply;
+  opacity: 0.3;
+}
+
+/* Layer 2: Sage wainscoting band along the lower wall, painted by the B2
+   sprite. The PNG holds the panel slats + warm top and bottom rails.
+   mix-blend-mode: multiply lets the active lighting variant tint the
+   sage so sodium / amber / etc. reads through the wood. */
+.kport-gallery__wainscot {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: var(--floor-height);
+  height: var(--wainscot-height);
+  z-index: 2;
+  pointer-events: none;
+  background-image: url('/assets/rooms/wainscot-sage.png');
+  background-size: auto 100%;
+  background-repeat: repeat-x;
+  image-rendering: pixelated;
+}
+
+/* Layer 3: Warm oak plank floor painted by the B3 sprite. Tiles
+   horizontally across the room width; the dark baseboard line at the top
+   stays via inset box-shadow so the wall-meets-floor seam still reads. */
+.kport-gallery__floor {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--floor-height);
+  z-index: 3;
+  pointer-events: none;
+  background-image: url('/assets/rooms/floor-gallery.png');
+  background-size: auto 100%;
+  background-repeat: repeat-x;
+  box-shadow: inset 0 3px 0 var(--room-walnut-deep);
+  image-rendering: pixelated;
+}
+
+/* Layer 4: Diagonal sunlight beam from the side window. Lightens the wall
+   without changing hue too much; reduced-motion users see it static. */
+.kport-gallery__sunlight {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  background: linear-gradient(
+    225deg,
+    rgba(255, 240, 200, 0.32) 0%,
+    rgba(255, 240, 200, 0.18) 18%,
+    rgba(255, 240, 200, 0.05) 35%,
+    transparent 55%
+  );
+  mix-blend-mode: lighten;
+}
+
+/* Layer 5: Side window — hidden. The window was a charming "same-world"
+   continuity nod, but at gallery scale it pulled attention away from the
+   photos. Sprite kept on disk (public/assets/rooms/side-window.png) for
+   future use. */
+.kport-gallery__side-window {
+  display: none;
+}
+
+/* Layer 6: Wooden plaque header painted by the B4 sprite. The "MY
+   PICTURES" lettering is baked into the PNG, so the text content the
+   React component renders is hidden (kept for screen-readers via the
+   text being there but visually clipped). Sized to display the sprite
+   at 2x native for crisp pixel art at gallery scale. */
+.kport-gallery__plaque {
+  position: absolute;
+  top: var(--plaque-from-top);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  width: 64px;
+  height: 36px;
+  background: url('/assets/rooms/plaque-wooden.png') center / 100% 100% no-repeat;
+  opacity: 0.85;
+  /* Hide the textual content visually — the sprite shows it instead. The
+     text still exists in the DOM for screen readers. */
+  color: transparent;
+  font-size: 0;
+  pointer-events: none;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 2px 3px rgba(42, 24, 8, 0.45));
+}
+
+/* Layer 7: Bench — hidden. The bench was a strong horizontal element
+   competing with photos in the foreground. Sprite kept on disk for future
+   use. */
+.kport-gallery__bench {
+  display: none;
+}
+
+/* Layer 8: Fern — hidden. The fern was a small but visually grabbing corner
+   element. Sprite kept on disk. */
+.kport-gallery__fern {
+  display: none;
+}
+
+/* Back / Street navigation. Real Win98 chunky button vocabulary so the
+   affordance is unmistakable. The
+   pixel-art door sprite was charming but too small to read as a nav
+   control at gallery scale. */
+.kport-gallery__exit {
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  z-index: 7;
+  min-width: 90px;
+  height: 26px;
+  padding: 0 12px;
+  font-family: 'Tahoma', 'Microsoft Sans Serif', sans-serif;
+  font-size: 11px;
+  color: var(--color-text-primary, #1a1a1a);
+  background: #c0c0c0;
+  border: 2px solid;
+  border-color: #ffffff #808080 #808080 #ffffff;
+  box-shadow: inset 1px 1px 0 #dfdfdf, inset -1px -1px 0 #404040;
+  cursor: pointer;
+}
+.kport-gallery__exit:hover {
+  background: #d0d0d0;
+}
+.kport-gallery__exit:active {
+  border-color: #808080 #ffffff #ffffff #808080;
+  box-shadow: inset 1px 1px 0 #404040, inset -1px -1px 0 #dfdfdf;
+}
+.kport-gallery__exit:focus-visible {
+  outline: 1px dotted #1a1a1a;
+  outline-offset: -4px;
+}
+
+/* Photo grid. Auto-fills the wall area between the plaque band (top) and
+   the wainscot/floor band (bottom). Per-frame painting happens inside
+   `.kport-gallery__frame`; the grid only spaces them. */
+.kport-gallery__grid {
+  position: absolute;
+  /* Top: clears the plaque (~30px) + picture-light halo (~14px). */
+  top: 50px;
+  left: calc(var(--room-gutter) + 56px); /* leave room for fern */
+  right: calc(var(--room-gutter) + 76px); /* leave room for side window */
+  bottom: calc(var(--floor-height) + var(--wainscot-height));
+  z-index: 6;
+  margin: 0;
+  padding: 0 4px 4px 0;
+  list-style: none;
+  /* Photos hang along the wall. Auto-flow horizontally so a long collection
+     scrolls left-to-right like walking the gallery — never wraps into the
+     wainscot. The minmax keeps thumbnails legible. */
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(120px, 160px);
+  grid-template-rows: 1fr;
+  gap: 24px;
+  align-items: start;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--room-oak-dark) transparent;
+}
+
+.kport-gallery__grid > li {
+  list-style: none;
+  /* Frame stretches to its content height, not the grid row. */
+  align-self: start;
+}
+
+.kport-gallery__grid::-webkit-scrollbar {
+  height: 6px;
+}
+.kport-gallery__grid::-webkit-scrollbar-thumb {
+  background: var(--room-oak-dark);
+}
+.kport-gallery__grid::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Photo frame. The old ornate gilt sprite overpowered the photo inside it.
+   Replaced with a thin CSS gilt border
+   built from layered box-shadows: walnut outline + brass highlight +
+   sage mat inset + drop shadow against the wall. Photo now occupies
+   ~95% of the frame area instead of 60%. */
+.kport-gallery__frame {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  padding: 4px;
+  background: var(--room-antique-gold);
+  border: 0;
+  cursor: pointer;
+  text-align: center;
+  font-family: 'Tahoma', 'Microsoft Sans Serif', sans-serif;
+  color: var(--room-walnut-deep);
+  box-shadow:
+    /* Outer dark outline against the wall. */
+    0 0 0 1px var(--room-walnut-deep),
+    /* Inner brass highlight. */
+    inset 0 0 0 1px var(--room-brass-highlight),
+    /* Drop shadow grounds the frame on the wall. */
+    0 2px 4px rgba(42, 24, 8, 0.35);
+  image-rendering: pixelated;
+  isolation: isolate;
+}
+
+/* Picture-light halo above each frame. Brass bar + radial glow that uses
+   the active lighting variant so amber / sodium / etc. tint the wash. */
+/* Drop the brass picture-light sprite, keep just a soft warm halo above
+   each frame so photos still feel
+   "lit" without an extra sprite competing with the gilt border. */
+.kport-gallery__frame::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: 20%;
+  right: 20%;
+  height: 2px;
+  background: var(--gallery-sconce);
+  border-radius: 50%;
+  filter: blur(8px);
+  pointer-events: none;
+  z-index: -1;
+}
+.kport-gallery__frame:hover {
+  filter: drop-shadow(0 0 4px var(--gallery-sconce))
+    drop-shadow(0 2px 3px rgba(42, 24, 8, 0.35));
+}
+.kport-gallery__frame:focus-visible {
+  outline: 3px solid var(--room-brass-highlight);
+  outline-offset: 2px;
+}
+
+/* Photo fills nearly the whole frame now. The 4px gilt padding from the
+   parent button is the visible "frame thickness"; the photo sits inside
+   that with object-fit: contain so any aspect ratio stays whole, and
+   the sage mat background fills any letterbox space. */
+.kport-gallery__frame img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: var(--gallery-wainscot);
+  image-rendering: auto;
+}
+
+.kport-gallery__frame-label {
+  /* Pin the title plaque below the frame so the gilt sprite stays
+     uncluttered. Reads like a museum's wall card under each piece. */
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -16px;
+  display: block;
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--room-walnut-deep);
+  text-shadow: 0 1px 0 var(--room-brass-highlight);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Categories landing grid. Renders the 6 exhibit cards (5 collections + an
+   "All Photos" card) inside the same wall slot the photo grid uses. Each
+   card is wider than a single photo so the cover photo + label both read
+   clearly without the per-photo picture-light overlap that the regular
+   grid uses. */
+.kport-gallery__categories {
+  position: absolute;
+  top: 50px;
+  left: calc(var(--room-gutter) + 56px);
+  right: calc(var(--room-gutter) + 76px);
+  bottom: calc(var(--floor-height) + var(--wainscot-height));
+  z-index: 6;
+  margin: 0;
+  padding: 0 4px 4px 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-auto-rows: minmax(0, 1fr);
+  gap: 16px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--room-oak-dark) transparent;
+}
+
+.kport-gallery__categories > li {
+  list-style: none;
+  display: flex;
+}
+
+.kport-gallery__categories::-webkit-scrollbar {
+  width: 6px;
+}
+.kport-gallery__categories::-webkit-scrollbar-thumb {
+  background: var(--room-oak-dark);
+}
+.kport-gallery__categories::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Category-card variant of the gilt frame. Slightly different proportions
+   (taller, label below the cover) and a small lighting-tint dot to preview
+   the room's mood. */
+/* Category cards. The previous design nested
+   tiny cover thumbs inside ornate gilt frames; empty cards looked broken.
+   Now: cover image dominates the card, thin walnut border for grouping,
+   label sits on the cover as a translucent oak strip at the bottom.
+   The shared `.kport-gallery__frame` base styles (gilt padding etc.) are
+   overridden here so category cards read as photographic content, not
+   museum-display chrome. */
+.kport-gallery__frame--category {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  background: var(--room-cream-deep);
+  aspect-ratio: auto;
+  box-shadow:
+    0 0 0 1px var(--room-walnut-deep),
+    0 2px 4px rgba(42, 24, 8, 0.35);
+  overflow: hidden;
+}
+.kport-gallery__frame--category img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: var(--room-cream-deep);
+}
+.kport-gallery__frame--category .kport-gallery__frame-label {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin: 0;
+  padding: 4px 6px;
+  font-size: 10px;
+  letter-spacing: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+  color: var(--room-cream-light);
+  background: rgba(42, 24, 8, 0.72);
+  text-shadow: 0 1px 0 var(--room-walnut-deep);
+}
+/* The base `.kport-gallery__frame::before` halo doesn't make sense on
+   category cards (no per-card lighting fixture metaphor). Hide it. */
+.kport-gallery__frame--category::before {
+  display: none;
+}
+/* Lighting-tint dot, top-right inside the card, hints at the room's mood
+   before the user clicks. Reads the `--gallery-light-{X}-sconce` warmth
+   directly so each card's dot is the actual halo color. */
+.kport-gallery__frame--category::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--room-cream-light);
+  border: 1px solid var(--room-walnut-deep);
+  box-shadow: 0 0 6px 1px var(--room-cream-light);
+}
+.kport-gallery__frame--category[data-light-hint='amber']::after {
+  background: var(--gallery-light-amber-sconce);
+  box-shadow: 0 0 6px 1px var(--gallery-light-amber-sconce);
+}
+.kport-gallery__frame--category[data-light-hint='sodium']::after {
+  background: var(--gallery-light-sodium-sconce);
+  box-shadow: 0 0 6px 1px var(--gallery-light-sodium-sconce);
+}
+.kport-gallery__frame--category[data-light-hint='tungsten']::after {
+  background: var(--gallery-light-tungsten-sconce);
+  box-shadow: 0 0 6px 1px var(--gallery-light-tungsten-sconce);
+}
+.kport-gallery__frame--category[data-light-hint='moon']::after {
+  background: var(--gallery-light-moon-sconce);
+  box-shadow: 0 0 6px 1px var(--gallery-light-moon-sconce);
+}
+.kport-gallery__frame--category[data-light-hint='dusk']::after {
+  background: var(--gallery-light-dusk-sconce);
+  box-shadow: 0 0 6px 1px var(--gallery-light-dusk-sconce);
+}
+
+/* Placeholder shown on category cards that have no cover photo (no photos
+   tagged with the category's filter yet). Renders as a soft empty cream
+   panel with a sage band at the bottom that hints at the label area. */
+.kport-gallery__frame-placeholder {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background:
+    linear-gradient(
+      to bottom,
+      var(--room-cream-deep) 0,
+      var(--room-cream-deep) 70%,
+      var(--gallery-wainscot) 70%,
+      var(--gallery-wainscot) 100%
+    );
+}
+
+/* Empty state. Two-line warm copy: the
+   leading line sets a tone ("This wall is waiting"), the sub-line gives
+   the practical next action. Lives in the photo-grid slot so the rest of
+   the room (wall, wainscot, floor, plaque) stays visible behind it. */
+.kport-gallery__empty {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 var(--room-gutter);
+  font-family: 'Tahoma', 'Microsoft Sans Serif', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--room-walnut-deep);
+  text-align: center;
+  text-shadow: 0 1px 0 var(--gallery-bg-a);
+}
+.kport-gallery__empty-sub {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--room-walnut);
+}
+.kport-gallery__empty em {
+  font-style: normal;
+  font-weight: 600;
+  color: var(--room-walnut-deep);
+}
+.kport-gallery__empty code {
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  padding: 1px 4px;
+  background: var(--room-cream-light);
+  border: 1px solid var(--room-oak-dark);
+}
+
+/* Lightbox. Replaces the grid when a photo is selected; ambient effects
+   keep painting underneath via .kport-room__ambient (z-index: 8). */
+.kport-gallery__lightbox {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  padding: 12px;
+  gap: 8px;
+  background: linear-gradient(
+    180deg,
+    var(--gallery-bg-a) 0%,
+    var(--gallery-bg-b) 100%
+  );
+}
+.kport-gallery__lightbox .kport-photos-back {
+  justify-self: start;
+  padding: 4px 10px;
+  font-family: 'Tahoma', 'Microsoft Sans Serif', sans-serif;
+  font-size: 11px;
+  background: var(--room-cream-light);
+  color: var(--room-walnut-deep);
+  border: 2px solid;
+  border-color: var(--room-cream-light) var(--room-walnut)
+    var(--room-walnut) var(--room-cream-light);
+  cursor: pointer;
+}
+.kport-gallery__lightbox .kport-photos-back:hover {
+  background: var(--room-brass-highlight);
+}
+.kport-gallery__lightbox img {
+  align-self: center;
+  justify-self: center;
+  max-width: 100%;
+  max-height: 100%;
+  /* Same gilt vocabulary as the grid frames, slimmer because the photo is
+     the focus here. */
+  padding: 6px;
+  background: var(--room-antique-gold);
+  box-shadow:
+    0 0 0 2px var(--room-walnut-deep),
+    inset 0 0 0 1px var(--room-brass-highlight);
+  object-fit: contain;
+}
+/* Lightbox meta. Previously bare text lines
+   floating against the cream gradient. Now seated on a cream-mat panel
+   with a thin walnut border so the metadata reads as a real museum
+   placard under the photo. */
+.kport-gallery__lightbox .kport-photos-meta {
+  margin: 0;
+  padding: 10px 14px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 4px 16px;
+  font-family: 'Tahoma', 'Microsoft Sans Serif', sans-serif;
+  font-size: 11px;
+  color: var(--room-walnut-deep);
+  background: var(--room-cream-light);
+  box-shadow:
+    0 0 0 1px var(--room-walnut-deep),
+    0 2px 4px rgba(42, 24, 8, 0.3);
+}
+.kport-gallery__lightbox .kport-photos-meta .row {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.kport-gallery__lightbox .kport-photos-meta .row.full {
+  grid-column: 1 / -1;
+}
+.kport-gallery__lightbox .kport-photos-meta dt {
+  font-size: 9px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--room-walnut);
+}
+.kport-gallery__lightbox .kport-photos-meta dd {
+  margin: 0;
+}
+
+/* Layer placeholders. Real sprites land in Phase 1. Each layer is positioned
+   absolutely so they stack cleanly. TODO selectors are kept in this file as
+   documentation of the layer order; uncomment as sprites land. */
+
+/*
+.kport-gallery .layer-wall      { position: absolute; inset: 0; z-index: 1; background-image: url('/assets/rooms/wall-gallery-tile.png'); background-size: 4px 4px; }
+.kport-gallery .layer-floor     { position: absolute; bottom: 0; left: 0; right: 0; height: var(--floor-height); z-index: 2; background-image: url('/assets/rooms/floor-gallery.png'); }
+.kport-gallery .layer-wainscot  { position: absolute; bottom: var(--floor-height); left: 0; right: 0; height: var(--wainscot-height); z-index: 3; background: var(--gallery-light-dusk-wainscot); }
+.kport-gallery .layer-tint      { position: absolute; inset: 0; mix-blend-mode: multiply; z-index: 4; }
+.kport-gallery .layer-frames    { position: absolute; top: 48px; left: var(--room-gutter); right: var(--room-gutter); bottom: 110px; display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--room-grid-gap); z-index: 6; }
+.kport-gallery .layer-ambient   { position: absolute; inset: 0; z-index: 8; pointer-events: none; }
+*/
+
+/* ---------- Workshop room (Projects.exe) ---------- */
+
+.kport-workshop {
+  background-color: var(--room-oak-warm);
+}
+
+/* ---------- Study room (Notepad.exe) ---------- */
+
+.kport-study {
+  background-color: var(--room-walnut);
+}
+
+/* ---------- Photos.exe storefront (exterior state) ----------
+   The background is a SINGLE painted panorama (street-scene-v2.png,
+   2172x724): a Toronto Queen West block at sunset reading left-to-right as
+   Sneaky Dee's, a Victorian walk-up, the PHOTOS shop (painted center), a
+   garage, DEFUSED ESPORTS, a COFFEE shop, and a TTC streetcar. One image
+   means no seams and a perfectly continuous sidewalk and streetcar tracks.
+
+   The scene is anchored to the window's BOTTOM and the PHOTOS shop sits
+   at the window's horizontal CENTER, so both edges reveal symmetrically
+   as the user widens the window. The camera-follow math lives in the
+   .kport-storefront rule below; the JS-side clamp is in
+   PhotosStorefront.tsx (WORLD_WIDTH = 2172). The letterbox gradient
+   shows only when the window is wider than 2172 * scale or taller than
+   724 * scale. */
+.kport-storefront {
+  /* --storefront-scale is the global zoom factor for the panorama.
+     1.0 = native pixel size of the 2172x724 source.
+
+     --character-scale is an INTEGER multiplier applied on top of
+     --storefront-scale for the visitor character only. Integer values
+     (2, 3, 4) keep pixel-art crisp via image-rendering: pixelated.
+     At storefront 1.0 + character 2 the on-screen character is 96x128,
+     about half the painted shop's width (170 on screen) — close to the
+     old proportions.
+
+     --cam-x is the CLAMPED camera position in WORLD coordinates
+     (scale-independent: 0 to 2172, the panorama width).
+     PhotosStorefront.tsx clamps it so the camera doesn't reveal beyond
+     the painted scene — the character drifts toward the window edge
+     past the clamp, with --char-offset reflecting that drift in
+     screen pixels. Default --cam-x matches the spawn point in front
+     of the photo shop. */
+  --storefront-scale: 1.0;
+  --character-scale: 2;
+  --cam-x: 1062;
+  --char-offset: 0px;
+  --scene-w: calc(2172px * var(--storefront-scale));
+  --scene-h: calc(724px * var(--storefront-scale));
+
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  /* Camera-follow math: the painted scene's CENTER (image-x = 1086, half of
+     2172) sits at window-x = W/2 - cam_x + 1086. In background-position terms
+     with calc(50% + L), L = (1086 - cam_x) * scale. Single URL, single
+     position formula, no seams to align. */
+  background:
+    url('/assets/rooms/street-scene-v2.png')
+      calc(50% + (1086 - var(--cam-x)) * var(--storefront-scale) * 1px) bottom no-repeat,
+    linear-gradient(180deg, #3a2410 0%, #2a1808 60%, #160c04 100%);
+  background-size:
+    var(--scene-w) var(--scene-h),
+    auto;
+  image-rendering: pixelated;
+  /* The storefront is focusable so it can capture keyboard input. The
+     default focus ring on the root div would distract from the painted
+     scene; AT focus is still announced via aria. */
+  outline: none;
+}
+
+/* Transparent click target overlaying the painted shop. Tracks the
+   painted shop horizontally as the camera scrolls — at spawn the shop is
+   at window center, but walking left/right shifts the shop's painted
+   position so the click target follows. Stays clickable for users who
+   prefer mouse over keyboard. */
+.kport-storefront__shop {
+  position: absolute;
+  /* V2 source: shop centered at image x=1085, facade 310 wide × 330 tall,
+     bottom edge 104 px above image bottom. */
+  left: calc(50% + (1085 - var(--cam-x)) * var(--storefront-scale) * 1px);
+  bottom: calc(104px * var(--storefront-scale));
+  transform: translateX(-50%);
+  width: calc(310px * var(--storefront-scale));
+  height: calc(330px * var(--storefront-scale));
+  background: transparent;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  z-index: 2;
+}
+
+/* Visitor character — pixel-art sprite sheet (4 frames horizontally,
+   each 48 x 64 px in the source PNG). Always rendered at the window's
+   horizontal center (the camera follows). Bottom offset scales with
+   --storefront-scale so the character's feet stay grounded on the
+   painted sidewalk at any zoom level.
+
+   Frame playback: background-position-x cycles 0 → -48s → -96s → -144s
+   (where s = scale), driven by the steps() animation when data-walking
+   is true. Static at frame 0 (idle) when not walking. */
+.kport-character {
+  /* Compound scale: scene scale × character scale multiplier. The
+     character is sized larger than the painted background-actor scale
+     so it reads as a real focal subject, not a doll.
+       on-screen px = source px × storefront-scale × character-scale
+     At storefront 0.7 + character 3 → 48*0.7*3 = 100.8 wide, 64*0.7*3
+     = 134.4 tall. Roughly Stardew Valley villager proportions next to
+     the shop facade. */
+  --char-w: calc(48px * var(--storefront-scale) * var(--character-scale));
+  --char-h: calc(64px * var(--storefront-scale) * var(--character-scale));
+  --char-sheet-w: calc(192px * var(--storefront-scale) * var(--character-scale));
+
+  position: absolute;
+  /* When the camera is unclamped, --char-offset is 0 and the character
+     sits at window center. When the camera clamps at a world edge,
+     --char-offset becomes nonzero and the character drifts toward the
+     window's side — preserving "you walked to the edge of town" feel
+     without revealing gradient letterbox. */
+  left: calc(50% + var(--char-offset));
+  /* Sidewalk in the V2 source sits roughly y=620-690 of 724 total, so
+     75 px above image-bottom puts the character's feet mid-sidewalk. */
+  bottom: calc(75px * var(--storefront-scale));
+  transform: translateX(-50%);
+  width: var(--char-w);
+  height: var(--char-h);
+  z-index: 3;
+  pointer-events: none;
+  background-image: url('/assets/rooms/character-visitor.png');
+  background-size: var(--char-sheet-w) var(--char-h);
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  image-rendering: pixelated;
+}
+.kport-character[data-facing='left'] {
+  /* Sprite is drawn facing right; mirror horizontally for left-walking. */
+  transform: translateX(-50%) scaleX(-1);
+}
+.kport-character[data-walking='true'] {
+  animation: kport-character-walk 0.5s steps(4) infinite;
+}
+
+@keyframes kport-character-walk {
+  from { background-position-x: 0; }
+  to   { background-position-x: calc(-192px * var(--storefront-scale) * var(--character-scale)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kport-character[data-walking='true'] {
+    /* Skip walk-cycle animation entirely; just show idle frame while
+       still allowing the character to move. */
+    animation: none;
+  }
+}
+
+/* Floating "↑ ENTER" prompt that appears above the character when they
+   walk into the photo shop's interaction zone. Hidden by default; shown
+   when the storefront root has data-can-interact="true". Positioned
+   above the character's head: sidewalk offset + character height + a
+   small gap. Character height already accounts for both scales. */
+.kport-storefront__interact-prompt {
+  position: absolute;
+  /* Tracks the character's horizontal position (which drifts toward the
+     window edge when the camera is clamped at a world edge). Bottom
+     matches the character's bottom + character height + small gap. */
+  left: calc(50% + var(--char-offset));
+  bottom: calc(75px * var(--storefront-scale) + 64px * var(--storefront-scale) * var(--character-scale) + 12px);
+  transform: translateX(-50%);
+  z-index: 4;
+  padding: 4px 10px;
+  font-family: 'Tahoma', 'Microsoft Sans Serif', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--room-cream-light);
+  background: rgba(42, 24, 8, 0.9);
+  border: 1px solid var(--room-brass-highlight);
+  border-radius: 2px;
+  box-shadow:
+    0 0 14px rgba(255, 200, 90, 0.6),
+    0 2px 4px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  opacity: 0;
+  transform-origin: center bottom;
+  transition: opacity 0.18s ease-out;
+}
+.kport-storefront[data-can-interact='true'] .kport-storefront__interact-prompt {
+  opacity: 1;
+  animation: kport-storefront-prompt-bob 1.4s ease-in-out infinite;
+}
+
+@keyframes kport-storefront-prompt-bob {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50%      { transform: translateX(-50%) translateY(-4px); }
+}
+
+/* Keyboard focus: warm inset bloom hugging the painted shop. */
+.kport-storefront__shop:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 18px 4px rgba(255, 200, 90, 0.55),
+    inset 0 0 28px rgba(255, 240, 200, 0.45);
+}
+
+/* Hover: softer warm bloom reinforces the shop as the click target. */
+.kport-storefront__shop:hover {
+  box-shadow:
+    0 0 18px 6px rgba(255, 200, 90, 0.5),
+    inset 0 0 32px rgba(255, 240, 200, 0.35);
+}
+
+/* Controls hint anchored to the bottom of the window. Teaches the
+   keyboard game (←/→ to walk, ↑/E to enter at the shop). Fades out
+   once the user starts moving (data-walking="true") so it doesn't
+   nag — fades back in when the user is idle. */
+.kport-storefront::after {
+  content: '← →  walk      ↑  enter at shop';
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  z-index: 5;
+  padding: 4px 14px;
+  font-family: 'Tahoma', 'Microsoft Sans Serif', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  color: var(--room-cream-light);
+  background: rgba(42, 24, 8, 0.85);
+  border: 1px solid var(--room-brass-highlight);
+  border-radius: 2px;
+  box-shadow:
+    0 0 10px rgba(255, 200, 90, 0.35),
+    0 2px 4px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  opacity: 0.85;
+  transition: opacity 0.4s ease-out;
+}
+/* Hide the hint while the user is actively walking — they've discovered
+   the controls, stop nagging. Also hide when in the interact zone (the
+   floating "↑ ENTER" prompt above the character is more direct). */
+.kport-storefront[data-walking='true']::after,
+.kport-storefront[data-can-interact='true']::after {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kport-storefront__shop:hover {
+    box-shadow: none;
+  }
+  .kport-storefront[data-can-interact='true'] .kport-storefront__interact-prompt {
+    /* prompt still visible, just no bob */
+    animation: none;
+  }
+}
+
+/* Mobile fallback: explicit text button below the storefront image.
+   Visible on mobile where the storefront image alone doesn't convey
+   "tappable shop" reliably. Hidden on desktop. */
+.kport-storefront__enter-button {
+  display: none;
+}
+@media (max-width: 767px) {
+  .kport-storefront__enter-button {
+    display: inline-block;
+    margin: var(--space-4, 16px) auto 0;
+    /* Reuses the chunky-Win98-button vocabulary from DESIGN.md. */
+    background: #c0c0c0;
+    color: var(--color-text-primary, #1a1a1a);
+    border: 2px solid;
+    border-color: #ffffff #808080 #808080 #ffffff;
+    box-shadow: inset 1px 1px 0 #dfdfdf, inset -1px -1px 0 #404040;
+    font-family: 'Tahoma', 'Microsoft Sans Serif', sans-serif;
+    font-size: 12px;
+    padding: 0 16px;
+    height: 44px; /* min touch target */
+    min-width: 44px;
+    cursor: pointer;
+  }
+  .kport-storefront__enter-button:active {
+    border-color: #808080 #ffffff #ffffff #808080;
+    box-shadow: inset 1px 1px 0 #404040, inset -1px -1px 0 #dfdfdf;
+  }
+}

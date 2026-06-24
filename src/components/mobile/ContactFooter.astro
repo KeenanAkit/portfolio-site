@@ -1,0 +1,71 @@
+---
+// Contact + social links at the bottom of every mobile page.
+// Footer note also points desktop-curious mobile visitors to the OS view.
+---
+
+<footer class="mobile-footer" data-only="mobile">
+  <div class="contact">
+    <h2 id="contact-heading">Contact</h2>
+    <ul>
+      <li>
+        <a href="mailto:keenanakit@gmail.com">keenanakit@gmail.com</a>
+      </li>
+      <li>
+        <a
+          href="https://instagram.com/keenanakit"
+          rel="me noopener"
+          target="_blank">Instagram</a>
+      </li>
+      <li>
+        <a
+          href="https://github.com/keenanakit"
+          rel="me noopener"
+          target="_blank">GitHub</a>
+      </li>
+    </ul>
+  </div>
+  <p class="fineprint">
+    On a desktop? Try the
+    <a href="/?ui=desktop" data-astro-prefetch>Windows&nbsp;98 version</a>.
+  </p>
+  <p class="copyright">© Keenan Akit. Built in public.</p>
+</footer>
+
+<style>
+  .mobile-footer {
+    padding: var(--space-7) var(--space-5) var(--space-8);
+    border-top: 1px solid var(--color-border-strong);
+    background: var(--color-bg-elevated);
+  }
+
+  .contact h2 {
+    margin: 0 0 var(--space-3);
+    font-size: var(--text-h3);
+  }
+
+  .contact ul {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 var(--space-5);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .contact a {
+    color: var(--color-link);
+    font-size: var(--text-body);
+  }
+
+  .fineprint {
+    margin: 0 0 var(--space-3);
+    font-size: var(--text-meta);
+    color: var(--color-text-secondary);
+  }
+
+  .copyright {
+    margin: 0;
+    font-size: var(--text-caption);
+    color: var(--color-text-tertiary);
+  }
+</style>

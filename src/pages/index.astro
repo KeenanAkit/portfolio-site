@@ -1,0 +1,53 @@
+---
+// Homepage. Mobile UI renders the photo-first stacked layout. Desktop UI
+// renders the Win98 React shell as a client:only island (no SSR, hydrates
+// only on data-ui="desktop" visitors, no bundle cost for phones).
+//
+// Astro content collections are build-time only. The React island can't read
+// them at runtime, so we extract everything it needs here (with MDX bodies
+// pre-rendered to HTML) and hand it as props.
+
+import BaseLayout from '../layouts/BaseLayout.astro';
+import MobileHeader from '../components/mobile/MobileHeader.astro';
+import MobileHomeHero from '../components/mobile/MobileHomeHero.astro';
+import FeaturedCategories from '../components/mobile/FeaturedCategories.astro';
+import ProjectCards from '../components/mobile/ProjectCards.astro';
+import PostList from '../components/mobile/PostList.astro';
+import ContactFooter from '../components/mobile/ContactFooter.astro';
+
+import { Desktop } from '../components/desktop/Desktop';
+import { loadDesktopData } from '../lib/desktop-data';
+
+import '../styles/desktop.css';
+
+const { photos: photoEntries, projects: projectEntries, posts: postEntries, categories: categoryEntries } =
+  await loadDesktopData();
+
+const title = 'Keenan Akit';
+const description =
+  "Photography, side projects, and notes. A Windows 98 desktop for the people who scroll, a clean portfolio for the people who don't.";
+---
+
+<BaseLayout title={title} description={description}>
+  <main id="main">
+    <!-- Mobile: photo-first stacked layout, server-rendered -->
+    <MobileHeader />
+    <MobileHomeHero />
+    <FeaturedCategories />
+    <ProjectCards />
+    <PostList limit={3} />
+    <ContactFooter />
+
+    <!-- Desktop: Win98 React shell. client:only=react so it hydrates only on
+         data-ui="desktop" visitors and never SSRs (no mobile-flash on phones). -->
+    <div data-only="desktop">
+      <Desktop
+        photos={photoEntries}
+        projects={projectEntries}
+        posts={postEntries}
+      categories={categoryEntries}
+        client:only="react"
+      />
+    </div>
+  </main>
+</BaseLayout>

@@ -1,0 +1,141 @@
+---
+// All photos page.
+// - Mobile: photo-first stacked grid (existing behavior).
+// - Desktop: the React shell mounts and useUrlSync parses /photos as
+//   { kind: 'photos', mode: 'exterior' } per url-sync.ts routing, which
+//   opens Photos.exe at the storefront state automatically.
+//
+// Mirrors the Desktop mounting pattern from src/pages/index.astro so the
+// desktop shell exists on /photos too. Without this, a desktop visitor
+// landing on /photos sees a blank page because the mobile DOM is hidden
+// by data-only="mobile" and there's no React island to take its place.
+
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import MobileHeader from '../../components/mobile/MobileHeader.astro';
+import ContactFooter from '../../components/mobile/ContactFooter.astro';
+import { Image } from 'astro:assets';
+import { getCollection } from 'astro:content';
+
+import { Desktop } from '../../components/desktop/Desktop';
+import { loadDesktopData } from '../../lib/desktop-data';
+import { displayTitle } from '../../lib/photo-display';
+import '../../styles/desktop.css';
+
+// Mobile DOM still wants the raw collection entries (for Astro's <Image>),
+// so we keep `photos` alongside the desktop-island props.
+const photos = (await getCollection('photos')).sort(
+  (a, b) => b.data.date.getTime() - a.data.date.getTime()
+);
+
+const { photos: photoEntries, projects: projectEntries, posts: postEntries, categories: categoryEntries } =
+  await loadDesktopData();
+
+const title = 'Photos · Keenan Akit';
+const description =
+  'Photography by Keenan Akit. Landscapes, portraits, travel, and the in-between.';
+---
+
+<BaseLayout title={title} description={description}>
+  <!-- Mobile: photo-first stacked grid. Hidden on desktop via data-only. -->
+  <MobileHeader tagline="Photos" />
+  <main id="main" class="photos-page" data-only="mobile">
+    <h1>Photos</h1>
+
+    {
+      photos.length === 0 ? (
+        <p class="empty">
+          No photos yet. Add one via <code>/photo-add</code>.
+        </p>
+      ) : (
+        <ul class="photo-grid">
+          {photos.map((p) => (
+            <li>
+              <a href={`/photos/gallery/${p.id}`} data-astro-prefetch>
+                <Image
+                  src={p.data.image}
+                  alt={p.data.caption ?? displayTitle(p.data.title, p.id) ?? 'Photograph by Keenan Akit'}
+                  inferSize
+                  widths={[240, 480, 640]}
+                  sizes="(min-width: 480px) 240px, 50vw"
+                  format="avif"
+                  quality={70}
+                  loading="lazy"
+                  class="thumb"
+                />
+                {displayTitle(p.data.title, p.id) && (
+                  <span class="title">{displayTitle(p.data.title, p.id)}</span>
+                )}
+              </a>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+  </main>
+  <ContactFooter />
+
+  <!-- Desktop: Win98 React shell. Hidden on mobile via data-only.
+       useUrlSync sees pathname='/photos' and opens Photos.exe in exterior mode. -->
+  <div data-only="desktop">
+    <Desktop
+      photos={photoEntries}
+      projects={projectEntries}
+      posts={postEntries}
+      categories={categoryEntries}
+      client:only="react"
+    />
+  </div>
+</BaseLayout>
+
+<style>
+  .photos-page {
+    padding: var(--space-5) var(--space-5) var(--space-7);
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    margin: 0 0 var(--space-5);
+  }
+
+  .photo-grid {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-3);
+  }
+
+  .photo-grid a {
+    text-decoration: none;
+    color: var(--color-text-primary);
+  }
+
+  .thumb {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border);
+  }
+
+  .title {
+    display: block;
+    margin-top: var(--space-2);
+    font-size: var(--text-caption);
+    color: var(--color-text-secondary);
+  }
+
+  .empty {
+    color: var(--color-text-secondary);
+    font-size: var(--text-meta);
+  }
+
+  .empty code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    background: var(--color-bg-elevated);
+    padding: 2px 6px;
+    border: 1px solid var(--color-border);
+  }
+</style>

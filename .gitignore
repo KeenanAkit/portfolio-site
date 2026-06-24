@@ -1,0 +1,35 @@
+# build output
+dist/
+# generated types
+.astro/
+
+# dependencies
+node_modules/
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# environment variables
+.env
+.env.local
+.env.production
+
+# macOS / editor noise
+.DS_Store
+.idea/
+*.swp
+
+# Cloudflare wrangler
+.wrangler/
+
+# Generated OG images, if a build script emits them outside dist/
+public/og/generated/
+.gstack/
+
+# Local AI-workflow files (kept on disk, not committed)
+CLAUDE.md
+TODOS.md
+.claude/

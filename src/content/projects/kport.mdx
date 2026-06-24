@@ -1,0 +1,37 @@
+---
+title: "KPort"
+year: 2026
+role: "Designer and engineer"
+stack: ["Astro 6", "React 19", "GSAP 3.15", "Zustand 5", "98.css", "Cloudflare Pages"]
+summary: "This site. A Windows 98 desktop on desktop and a clean photo-first portfolio on mobile, replacing my Adobe Portfolio."
+links:
+  - label: "Live"
+    url: "https://keenanakit.com"
+  - label: "Design doc"
+    url: "https://keenanakit.com/about/kport"
+featured: true
+---
+
+KPort is the site you are looking at right now.
+
+The brief: replace keenanakit.com (Adobe Portfolio) with something that says
+something about how I work. The chrome of the site is the work.
+
+What I'm building:
+- A homepage that boots like Windows 98 on first visit. Boot sequence is gated
+  by localStorage so repeat visits go straight to the desktop.
+- Draggable windows for Photos, Projects, and Notepad (this blog). Multiple
+  windows open at once. Position persists across reloads.
+- A mobile UI that is content-first, photo-first, and accessible. No desktop
+  metaphor on phones.
+- Easter eggs: BSOD as the 404, CRT-collapse animation on outbound links,
+  Mystify screensaver after a minute of idle, Konami code wallpaper swap.
+
+What was hard so far:
+- Reconciling Astro's multi-page model with a persistent SPA shell. The answer
+  is two routing systems that never overlap: desktop is pure pushState inside
+  the shell, mobile is real Astro pages with view transitions.
+- Making the desktop hydration not flash the mobile DOM on first paint. Solved
+  with a synchronous data-ui script and an opacity gate.
+
+Source is private for now.

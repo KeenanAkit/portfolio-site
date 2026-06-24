@@ -1,0 +1,248 @@
+---
+// Base layout for every page. Renders <head>, the synchronous data-ui script,
+// and the body wrapper. Child pages slot in via the default slot.
+//
+// See design doc §"How a single route serves two UIs" for the rationale behind
+// the inline data-ui script and the opacity gate.
+
+// NOTE: Astro's <ClientRouter /> (view transitions runtime) is intentionally
+// NOT included here. There are no view transitions on desktop: ClientRouter
+// intercepts popstate and tries to swap document HTML, which destroys the
+// React desktop shell on back-button presses (a white-screen bug).
+// Mobile gets standard browser navigation between Astro pages, which works
+// fine. View transitions are a v1.1 candidate once we can gate them to
+// mobile only at runtime (not feasible cleanly with SSR-set data-ui).
+import '../styles/global.css';
+import '../styles/rooms.css';
+import '98.css';
+
+interface Props {
+  title: string;
+  description: string;
+  ogImage?: string;
+  canonicalPath?: string;
+}
+
+const { title, description, ogImage, canonicalPath } = Astro.props;
+
+const siteUrl = Astro.site?.toString() ?? 'https://keenanakit.com';
+const path = canonicalPath ?? Astro.url.pathname;
+const canonical = new URL(path, siteUrl).toString();
+const ogImageUrl = ogImage
+  ? new URL(ogImage, siteUrl).toString()
+  : new URL('/og-default.png', siteUrl).toString();
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="generator" content={Astro.generator} />
+
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={ogImageUrl} />
+    <meta property="og:site_name" content="KPort" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content={canonical} />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImageUrl} />
+
+    <link
+      rel="alternate"
+      type="application/rss+xml"
+      title="KPort"
+      href="/rss.xml"
+    />
+
+    <!--
+      Synchronous data-ui script. MUST run before first paint.
+      Sets <html data-ui="desktop|mobile"> based on viewport + pointer type.
+      Locked at initial paint; resizing does not swap modes mid-session.
+
+      Opacity gate is SCOPED to the desktop region only. Hiding <html> would
+      harm LCP for all visitors. Mobile DOM paints immediately; only the
+      desktop region waits for data-ui-ready.
+    -->
+    <style is:inline>
+      [data-only='desktop'] {
+        opacity: 0;
+      }
+      html[data-ui-ready] [data-only='desktop'] {
+        opacity: 1;
+        transition: opacity 0.12s ease-in;
+      }
+    </style>
+    <script is:inline>
+      (function () {
+        try {
+          var hasFinePointer = window.matchMedia('(pointer: fine)').matches;
+          var isWide = window.matchMedia('(min-width: 768px)').matches;
+          var prefersReducedMotion = window.matchMedia(
+            '(prefers-reduced-motion: reduce)'
+          ).matches;
+          var ui = hasFinePointer && isWide ? 'desktop' : 'mobile';
+          document.documentElement.setAttribute('data-ui', ui);
+          document.documentElement.setAttribute('data-ui-locked', ui);
+          if (prefersReducedMotion) {
+            document.documentElement.setAttribute('data-reduced-motion', 'true');
+          }
+        } catch (_) {
+          document.documentElement.setAttribute('data-ui', 'mobile');
+        } finally {
+          document.documentElement.setAttribute('data-ui-ready', '');
+        }
+      })();
+    </script>
+
+    <!--
+      Standard view (AT bypass). Runs synchronously so the body class
+      lands before first paint and the room ornaments never flash visible
+      for someone who's already opted into the text-first view.
+
+        ?ui=standard          → opt in, persist to localStorage
+        ?ui=pixel             → opt out, clear localStorage
+        no flag + stored pref → restore last choice
+
+      The corresponding hide rule is in rooms.css under
+      `body.kport-standard-view`.
+    -->
+    <script is:inline>
+      (function () {
+        try {
+          var params = new URLSearchParams(window.location.search);
+          var fromUrl = params.get('ui');
+          var STORAGE_KEY = 'kport.ui';
+          var current = null;
+          if (fromUrl === 'standard') {
+            current = 'standard';
+            window.localStorage.setItem(STORAGE_KEY, 'standard');
+          } else if (fromUrl === 'pixel') {
+            current = 'pixel';
+            window.localStorage.removeItem(STORAGE_KEY);
+          } else {
+            current = window.localStorage.getItem(STORAGE_KEY);
+          }
+          if (current === 'standard') {
+            // Set on <html> (exists immediately) so room ornaments hide
+            // before first paint. CSS selectors target html[data-view=...]
+            // rather than a body class so we don't need DOMContentLoaded.
+            document.documentElement.setAttribute('data-view', 'standard');
+          }
+        } catch (_) {
+          /* swallow. pre-paint script must never throw. */
+        }
+      })();
+    </script>
+
+    <slot name="head" />
+  </head>
+  <body>
+    <a href="#main" class="skip-link">Skip to content</a>
+    <a href="?ui=standard" class="skip-link kport-toggle-standard">
+      Standard view (text-first)
+    </a>
+    <a href="?ui=pixel" class="skip-link kport-toggle-pixel">
+      Pixel-art view
+    </a>
+    <slot />
+  </body>
+</html>
+
+<style is:global>
+  /* Reset-lite. The desktop and mobile UIs add their own rules on top. */
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+    min-height: 100%;
+  }
+
+  /* Default body styles. Mobile-specific styles in global.css override these. */
+  body {
+    color-scheme: light;
+  }
+
+  /*
+    98.css ships some `body` and `html` rules (Tahoma 11px font, silver bg).
+    We want those ONLY when data-ui="desktop". On mobile, reset back to clean
+    white + system body. The desktop-specific rules from 98.css are scoped via
+    its component classes (.window, .title-bar, etc.) and only apply when used.
+  */
+  html[data-ui='mobile'] body {
+    background: #ffffff !important;
+    font-family:
+      -apple-system,
+      BlinkMacSystemFont,
+      'Inter',
+      'Segoe UI',
+      Roboto,
+      Helvetica,
+      Arial,
+      sans-serif !important;
+    font-size: 1rem !important;
+  }
+
+  .skip-link {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    background: #000;
+    color: #fff;
+    padding: 0.5rem 1rem;
+    z-index: 9999;
+  }
+  .skip-link:focus {
+    left: 0;
+  }
+  /* The "Standard view" / "Pixel-art view" toggle pair: only one is offered
+     at a time, matching whichever view is currently active. Both stay focus-
+     reachable so screen-reader users see the right choice. */
+  html[data-view='standard'] .kport-toggle-standard {
+    display: none;
+  }
+  html:not([data-view='standard']) .kport-toggle-pixel {
+    display: none;
+  }
+  .skip-link.kport-toggle-standard:focus,
+  .skip-link.kport-toggle-pixel:focus {
+    left: auto;
+    right: 0;
+  }
+
+  /* Show / hide based on initial UI lock. See design doc §Mobile / desktop. */
+  html[data-ui='mobile'] [data-only='desktop'] {
+    display: none !important;
+  }
+  html[data-ui='desktop'] [data-only='mobile'] {
+    display: none !important;
+  }
+
+  /* Reduced motion (handled per-component too via GSAP). */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+</style>

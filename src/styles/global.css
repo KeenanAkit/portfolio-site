@@ -1,0 +1,159 @@
+/*
+  Global styles. CSS custom properties straight from DESIGN.md.
+  Read DESIGN.md before changing any value here. Components consume
+  these tokens via var(--token-name).
+*/
+
+:root {
+  /* Color: mobile + universal */
+  --color-bg: #ffffff;
+  --color-bg-elevated: #fafafa;
+  --color-text-primary: #1a1a1a;
+  --color-text-secondary: #666666;
+  --color-text-tertiary: #999999;
+  --color-border: #e5e5e5;
+  --color-border-strong: #d0d0d0;
+  --color-accent: #008080;
+  --color-accent-hover: #006666;
+  --color-link: var(--color-accent);
+
+  /* Color: Win98 (desktop only) */
+  --win98-desktop-bg: #008080;
+  --win98-window-bg: #c0c0c0;
+  --win98-window-border-light: #ffffff;
+  --win98-window-border-dark: #808080;
+  --win98-window-border-shadow: #404040;
+  --win98-titlebar-active: linear-gradient(90deg, #0a246a 0%, #a6caf0 100%);
+  --win98-titlebar-inactive: linear-gradient(90deg, #808080 0%, #b5b5b5 100%);
+  --win98-titlebar-text: #ffffff;
+  --win98-text: #000000;
+
+  /* Color: state */
+  --color-success: #008000;
+  --color-error: #c00000;
+  --color-bsod-bg: #0000aa;
+
+  /* Typography stacks */
+  --font-heading: 'Tahoma', 'Microsoft Sans Serif', 'Segoe UI', sans-serif;
+  --font-body: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto,
+    Helvetica, Arial, sans-serif;
+  --font-win98: 'Tahoma', 'Microsoft Sans Serif', 'MS Sans Serif', sans-serif;
+
+  /* Mobile type scale */
+  --text-display: 2rem;
+  --text-h1: 1.5rem;
+  --text-h2: 1.25rem;
+  --text-h3: 1.0625rem;
+  --text-body: 1rem;
+  --text-meta: 0.875rem;
+  --text-caption: 0.8125rem;
+
+  /* Win98 type scale */
+  --text-titlebar: 11px;
+  --text-menu: 11px;
+  --text-icon: 11px;
+  --text-body-win: 11px;
+
+  /* Spacing scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+  --space-9: 96px;
+}
+
+/* Base body styles for the mobile UI. Desktop overrides come from 98.css
+   plus our custom desktop-shell sheet, both gated by data-ui="desktop". */
+html[data-ui='mobile'] body {
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Headings in Tahoma family on mobile */
+html[data-ui='mobile'] h1,
+html[data-ui='mobile'] h2,
+html[data-ui='mobile'] h3,
+html[data-ui='mobile'] h4 {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+html[data-ui='mobile'] h1 {
+  font-size: var(--text-h1);
+  line-height: 1.2;
+}
+html[data-ui='mobile'] h2 {
+  font-size: var(--text-h2);
+  line-height: 1.25;
+}
+html[data-ui='mobile'] h3 {
+  font-size: var(--text-h3);
+  line-height: 1.3;
+  font-weight: 600;
+}
+
+/* Links on mobile use the teal accent */
+html[data-ui='mobile'] a {
+  color: var(--color-link);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+html[data-ui='mobile'] a:hover {
+  color: var(--color-accent-hover);
+}
+
+/* Tabular numerals for dates and meta */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* The chunky Win98 button. Used on mobile CTAs as the one retro touch. */
+.btn-win98 {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--win98-window-bg);
+  color: var(--color-text-primary);
+  border: 2px solid;
+  border-color: var(--win98-window-border-light) var(--win98-window-border-dark)
+    var(--win98-window-border-dark) var(--win98-window-border-light);
+  box-shadow:
+    inset 1px 1px 0 #dfdfdf,
+    inset -1px -1px 0 #404040;
+  font-family: var(--font-win98);
+  font-size: 12px;
+  font-weight: 400;
+  padding: 0 var(--space-4);
+  height: 32px;
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-win98:hover {
+  color: var(--color-text-primary);
+}
+
+.btn-win98:active {
+  border-color: var(--win98-window-border-dark)
+    var(--win98-window-border-light) var(--win98-window-border-light)
+    var(--win98-window-border-dark);
+  box-shadow:
+    inset 1px 1px 0 #404040,
+    inset -1px -1px 0 #dfdfdf;
+}
+
+/* Reduced motion is enforced globally via BaseLayout */

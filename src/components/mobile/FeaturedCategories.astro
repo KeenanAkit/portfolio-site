@@ -1,0 +1,151 @@
+---
+// Horizontal-scroll strip of category cards on the mobile homepage.
+// Each card is a curated collection from src/content/collections/ with
+// featured: true. Plus an "All photos" link at the end.
+//
+// Curated collections give editorial control over what's featured, rather
+// than a time-based "recent photos" listing.
+
+import { getCollection } from 'astro:content';
+import { Image } from 'astro:assets';
+
+const featured = (await getCollection('collections', (c) => c.data.featured))
+  .sort((a, b) => a.data.order - b.data.order);
+
+// When a collection has no explicit `cover` URL set in frontmatter, auto-pick
+// the most recent matching photo's URL as the cover. Mirrors the desktop-side
+// logic in src/lib/desktop-data.ts > pickCategoryCoverSrc().
+const allPhotos = (await getCollection('photos')).sort(
+  (a, b) => b.data.date.getTime() - a.data.date.getTime()
+);
+
+function coverForCategory(data: typeof featured[number]['data']): string | null {
+  if (data.cover) return data.cover;
+  const f = data.filter;
+  const match =
+    'tag' in f
+      ? allPhotos.find((p) => p.data.tags.includes(f.tag))
+      : allPhotos.find((p) => f.slugs.includes(p.id));
+  return match?.data.image ?? null;
+}
+---
+
+<section class="featured-categories" data-only="mobile" aria-labelledby="featured-heading">
+  <header class="section-header">
+    <h2 id="featured-heading">Featured</h2>
+    <a href="/photos" class="all-link" data-astro-prefetch>All photos →</a>
+  </header>
+
+  {
+    featured.length === 0 ? (
+      <p class="empty">No featured collections yet. Add one in <code>src/content/collections/</code>.</p>
+    ) : (
+      <div class="scroll-strip" role="list">
+        {featured.map((c) => {
+          const cover = coverForCategory(c.data);
+          return (
+            <a
+              href={`/photos/category/${c.id}`}
+              class="category-card"
+              role="listitem"
+              data-astro-prefetch
+            >
+              <div class="cover">
+                {cover && (
+                  <Image
+                    src={cover}
+                    alt=""
+                    inferSize
+                    widths={[160, 280, 360]}
+                    sizes="160px"
+                    format="avif"
+                    quality={70}
+                    loading="lazy"
+                  />
+                )}
+              </div>
+              <span class="label">{c.data.title}</span>
+            </a>
+          );
+        })}
+      </div>
+    )
+  }
+</section>
+
+<style>
+  .featured-categories {
+    padding: var(--space-6) 0 var(--space-5);
+  }
+
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 0 var(--space-5);
+    margin-bottom: var(--space-4);
+  }
+
+  .all-link {
+    font-size: var(--text-meta);
+    color: var(--color-link);
+    text-decoration: none;
+  }
+
+  .scroll-strip {
+    display: flex;
+    gap: var(--space-3);
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-padding-left: var(--space-5);
+    padding: var(--space-1) var(--space-5);
+    /* Hide scrollbar on iOS without breaking it on desktop */
+    scrollbar-width: none;
+  }
+  .scroll-strip::-webkit-scrollbar {
+    display: none;
+  }
+
+  .category-card {
+    flex: 0 0 auto;
+    width: 140px;
+    text-decoration: none;
+    color: var(--color-text-primary);
+    scroll-snap-align: start;
+  }
+
+  .cover {
+    width: 140px;
+    height: 140px;
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-elevated);
+  }
+  .cover :global(img) {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .label {
+    display: block;
+    margin-top: var(--space-2);
+    font-family: var(--font-heading);
+    font-size: var(--text-meta);
+    font-weight: 600;
+  }
+
+  .empty {
+    padding: 0 var(--space-5);
+    color: var(--color-text-secondary);
+    font-size: var(--text-meta);
+  }
+  .empty code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.85em;
+    background: var(--color-bg-elevated);
+    padding: 2px 6px;
+    border: 1px solid var(--color-border);
+  }
+</style>

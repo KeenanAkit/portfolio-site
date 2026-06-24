@@ -1,0 +1,153 @@
+---
+// /photos/category/[slug] — category overview (lighting shifted on desktop).
+//
+// On desktop: useUrlSync opens Photos.exe in interior mode with the matching
+// `category`, so <PhotosGallery>'s `data-light` swaps to that category's
+// lighting variant (amber for landscapes, sodium for street, etc.). The mobile
+// DOM below is the SSR fallback.
+
+import BaseLayout from '../../../../layouts/BaseLayout.astro';
+import MobileHeader from '../../../../components/mobile/MobileHeader.astro';
+import ContactFooter from '../../../../components/mobile/ContactFooter.astro';
+import { Image } from 'astro:assets';
+import { getCollection, getEntry } from 'astro:content';
+
+import { Desktop } from '../../../../components/desktop/Desktop';
+import { loadDesktopData } from '../../../../lib/desktop-data';
+import '../../../../styles/desktop.css';
+
+export async function getStaticPaths() {
+  const cats = await getCollection('collections');
+  return cats.map((c) => ({ params: { slug: c.id } }));
+}
+
+const { slug } = Astro.params;
+const category = await getEntry('collections', slug!);
+
+if (!category) {
+  return Astro.redirect('/404');
+}
+
+const allPhotos = await getCollection('photos');
+
+const matched = (() => {
+  const f = category.data.filter;
+  if ('tag' in f) {
+    return allPhotos.filter((p) => p.data.tags.includes(f.tag));
+  }
+  return allPhotos.filter((p) => f.slugs.includes(p.id));
+})().sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+
+const title = `${category.data.title} · Keenan Akit`;
+// Fall back to a neutral SEO description until the category's own is written.
+const description =
+  category.data.description ?? `${category.data.title} photography by Keenan Akit.`;
+
+const { photos: photoEntries, projects: projectEntries, posts: postEntries, categories: categoryEntries } =
+  await loadDesktopData();
+---
+
+<BaseLayout title={title} description={description}>
+  <MobileHeader tagline={category.data.title} />
+  <main id="main" class="category-page" data-only="mobile">
+    <a href="/photos/gallery" class="back-link" data-astro-prefetch>← Gallery</a>
+    <header class="header">
+      <h1>{category.data.title}</h1>
+      {category.data.description && (
+        <p class="description">{category.data.description}</p>
+      )}
+    </header>
+
+    {
+      matched.length === 0 ? (
+        <p class="empty">No photos in this collection yet.</p>
+      ) : (
+        <ul class="photo-grid">
+          {matched.map((p) => (
+            <li>
+              <a href={`/photos/category/${slug}/${p.id}`} data-astro-prefetch>
+                <Image
+                  src={p.data.image}
+                  alt={p.data.caption ?? p.data.title}
+                  inferSize
+                  widths={[240, 480, 640]}
+                  sizes="(min-width: 480px) 240px, 50vw"
+                  format="avif"
+                  quality={70}
+                  loading="lazy"
+                  class="thumb"
+                />
+              </a>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+  </main>
+  <ContactFooter />
+
+  <div data-only="desktop">
+    <Desktop
+      photos={photoEntries}
+      projects={projectEntries}
+      posts={postEntries}
+      categories={categoryEntries}
+      client:only="react"
+    />
+  </div>
+</BaseLayout>
+
+<style>
+  .category-page {
+    padding: var(--space-4) 0 var(--space-7);
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  .back-link {
+    display: inline-block;
+    padding: 0 var(--space-5);
+    font-size: var(--text-meta);
+    color: var(--color-link);
+    text-decoration: none;
+    margin-bottom: var(--space-3);
+  }
+
+  .header {
+    padding: 0 var(--space-5);
+    margin-bottom: var(--space-5);
+  }
+
+  h1 {
+    margin: 0 0 var(--space-2);
+  }
+
+  .description {
+    margin: 0;
+    color: var(--color-text-secondary);
+    line-height: 1.55;
+  }
+
+  .photo-grid {
+    list-style: none;
+    padding: 0 var(--space-5);
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-3);
+  }
+
+  .thumb {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border);
+  }
+
+  .empty {
+    padding: 0 var(--space-5);
+    color: var(--color-text-secondary);
+    font-size: var(--text-meta);
+  }
+</style>

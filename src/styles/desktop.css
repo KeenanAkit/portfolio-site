@@ -1,0 +1,928 @@
+/*
+  Desktop shell styles. Builds on top of 98.css for window chrome, adds the
+  custom pieces 98.css doesn't ship: taskbar, icons, clock, focused/unfocused
+  title bars, photo gallery interior, wallpaper layer.
+
+  See DESIGN.md for tokens and budget rationale (~250 lines spec'd; this file
+  is the implementation).
+
+  Everything below is gated by `html[data-ui="desktop"]` at the call site
+  (we pin this stylesheet to the desktop React island via Astro import).
+*/
+
+/* Root container: fills the viewport, wallpaper on the bg, icons + windows
+   absolutely positioned, taskbar at the bottom.
+
+   Custom cursor: a Win98-style arrow drawn inline as SVG. Scoped via
+   `cursor: url(...)` on the desktop only so the rest of the page (mobile
+   visitors hitting this CSS, even though display:none, etc.) keeps the
+   default system cursor. */
+.kport-desktop {
+  position: fixed;
+  inset: 0;
+  background-color: var(--win98-desktop-bg);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  font-family: var(--font-win98);
+  color: var(--win98-text);
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20' shape-rendering='crispEdges'><path d='M2 1 L2 15 L5 12 L7 17 L9 16 L7 12 L11 12 Z' fill='white' stroke='black' stroke-width='1' stroke-linejoin='miter'/></svg>")
+      2 2,
+    default;
+}
+
+/* Pointer cursor on interactive desktop elements */
+.kport-desktop button,
+.kport-desktop a,
+.kport-desktop .kport-desktop-icon,
+.kport-desktop .kport-taskbar-tab {
+  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20' shape-rendering='crispEdges'><path d='M7 1 L7 9 L4 9 L4 12 L8 16 L14 16 L17 13 L17 7 L13 7 L13 1 Z' fill='white' stroke='black' stroke-width='1' stroke-linejoin='miter'/></svg>")
+      7 1,
+    pointer;
+}
+
+/* ---------- Starfield wallpaper ---------- */
+
+.kport-desktop[data-wallpaper-mode='starfield'] {
+  /* Starfield canvas paints its own deep teal; we just need the canvas to
+     sit behind everything else on the desktop. */
+  background-color: #006666;
+}
+
+.kport-starfield {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Everything else on the desktop sits above the starfield. */
+.kport-desktop > .kport-desktop-icon,
+.kport-desktop > .kport-window,
+.kport-desktop > .kport-taskbar {
+  z-index: 1;
+  /* Existing rules elsewhere override z-index for windows (uses store value)
+     and the taskbar (9999) — this just floor-establishes them above the
+     starfield canvas (z-index 0). */
+}
+
+/* ---------- Desktop icons ---------- */
+
+.kport-desktop-icon {
+  position: absolute;
+  width: 80px;
+  padding: 6px 4px;
+  background: transparent;
+  border: 1px dotted transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: #fff;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.85);
+  font-family: var(--font-win98);
+  font-size: var(--text-icon);
+  line-height: 1.2;
+}
+.kport-desktop-icon .glyph {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.65));
+}
+.kport-desktop-icon .glyph svg {
+  display: block;
+}
+.kport-desktop-icon .label {
+  text-align: center;
+  word-break: break-word;
+  padding: 1px 3px;
+}
+.kport-desktop-icon.selected {
+  /* Win98 selected-icon look: blue tinted overlay on the glyph + inverted
+     label background. */
+  border: 1px dotted #fff;
+}
+.kport-desktop-icon.selected .glyph svg {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.65))
+    drop-shadow(0 0 0 rgba(10, 36, 106, 0.5));
+  /* Tint the icon via a blue overlay using SVG filter would be more accurate
+     but the drop-shadow approximation reads as "selected" without needing
+     per-icon SVG edits. */
+  opacity: 0.85;
+}
+.kport-desktop-icon.selected .label {
+  background: #0a246a;
+  color: #fff;
+  text-shadow: none;
+}
+.kport-desktop-icon:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+/* ---------- Windows ---------- */
+
+.kport-window {
+  /* 98.css gives us the chrome; we just position. */
+  display: flex;
+  flex-direction: column;
+}
+.kport-window .window-body,
+.kport-window-body {
+  flex: 1;
+  overflow: auto;
+  padding: 0;
+  margin: 2px;
+  background: #fff;
+}
+
+/* Active vs background title bar — 98.css's .title-bar always uses the
+   active gradient; we override for backgrounded windows. */
+.kport-window.unfocused .title-bar {
+  background: var(--win98-titlebar-inactive) !important;
+  color: #e0e0e0 !important;
+}
+.kport-window.unfocused .title-bar-text {
+  color: inherit;
+}
+
+/* Resize grip in the bottom-right corner. Tiny visible hint via the standard
+   Win98 chevron pattern. `touch-action: none` keeps mobile/trackpad drags
+   from triggering scroll on the underlying window-body. */
+.kport-resize-grip {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 16px;
+  height: 16px;
+  cursor: nwse-resize;
+  background:
+    linear-gradient(
+      135deg,
+      transparent 0%,
+      transparent 60%,
+      #808080 60%,
+      #808080 65%,
+      transparent 65%,
+      transparent 75%,
+      #808080 75%,
+      #808080 80%,
+      transparent 80%,
+      transparent 90%,
+      #808080 90%,
+      #808080 95%,
+      transparent 95%
+    );
+  z-index: 10;
+  touch-action: none;
+}
+
+/* ---------- Taskbar ---------- */
+
+.kport-taskbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 32px;
+  background: var(--win98-window-bg);
+  border-top: 2px solid;
+  border-color: var(--win98-window-border-light)
+    var(--win98-window-border-dark) var(--win98-window-border-dark)
+    var(--win98-window-border-light);
+  box-shadow: inset 1px 1px 0 #dfdfdf, inset -1px -1px 0 #404040;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px;
+  font-family: var(--font-win98);
+  font-size: var(--text-menu);
+  z-index: 9999;
+}
+
+.kport-start-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 6px;
+  background: var(--win98-window-bg);
+  border: 2px solid;
+  border-color: var(--win98-window-border-light)
+    var(--win98-window-border-dark) var(--win98-window-border-dark)
+    var(--win98-window-border-light);
+  box-shadow: inset 1px 1px 0 #dfdfdf, inset -1px -1px 0 #404040;
+  font-weight: 700;
+  font-size: 11px;
+  cursor: pointer;
+  color: var(--win98-text);
+}
+.kport-start-button .logo {
+  font-size: 14px;
+  line-height: 1;
+}
+.kport-start-button:active {
+  border-color: var(--win98-window-border-dark)
+    var(--win98-window-border-light) var(--win98-window-border-light)
+    var(--win98-window-border-dark);
+  box-shadow: inset 1px 1px 0 #404040, inset -1px -1px 0 #dfdfdf;
+}
+
+.kport-taskbar-tabs {
+  display: flex;
+  flex: 1;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.kport-taskbar-tab {
+  flex: 0 1 200px;
+  height: 24px;
+  padding: 0 8px;
+  background: var(--win98-window-bg);
+  border: 2px solid;
+  border-color: var(--win98-window-border-light)
+    var(--win98-window-border-dark) var(--win98-window-border-dark)
+    var(--win98-window-border-light);
+  box-shadow: inset 1px 1px 0 #dfdfdf, inset -1px -1px 0 #404040;
+  font-size: 11px;
+  font-family: var(--font-win98);
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  color: var(--win98-text);
+}
+.kport-taskbar-tab.active {
+  border-color: var(--win98-window-border-dark)
+    var(--win98-window-border-light) var(--win98-window-border-light)
+    var(--win98-window-border-dark);
+  box-shadow: inset 1px 1px 0 #404040, inset -1px -1px 0 #dfdfdf;
+  /* Sunken / pressed look for the active tab */
+  background: repeating-linear-gradient(
+    45deg,
+    #dfdfdf,
+    #dfdfdf 1px,
+    #c0c0c0 1px,
+    #c0c0c0 3px
+  );
+}
+.kport-taskbar-tab.minimized {
+  font-style: italic;
+}
+
+/* Tray / clock area */
+.kport-tray {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 8px;
+  background: var(--win98-window-bg);
+  border: 2px solid;
+  border-color: var(--win98-window-border-dark)
+    var(--win98-window-border-light) var(--win98-window-border-light)
+    var(--win98-window-border-dark);
+  box-shadow: inset 1px 1px 0 #404040, inset -1px -1px 0 #dfdfdf;
+  font-family: var(--font-win98);
+  font-size: var(--text-menu);
+}
+
+.kport-clock {
+  white-space: nowrap;
+}
+
+/* ---------- Photos app ---------- */
+
+.kport-photos-app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  font-family: var(--font-win98);
+  font-size: 12px;
+  background: #fff;
+}
+
+.kport-photos-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: var(--win98-window-bg);
+  border-bottom: 1px solid #808080;
+  font-size: 11px;
+}
+
+.kport-photos-back {
+  background: var(--win98-window-bg);
+  border: 2px solid;
+  border-color: var(--win98-window-border-light)
+    var(--win98-window-border-dark) var(--win98-window-border-dark)
+    var(--win98-window-border-light);
+  box-shadow: inset 1px 1px 0 #dfdfdf, inset -1px -1px 0 #404040;
+  padding: 2px 8px;
+  font-family: var(--font-win98);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.kport-photos-title {
+  font-weight: 700;
+}
+
+.kport-photos-count {
+  margin-left: auto;
+  color: #555;
+}
+
+.kport-photos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+  padding: 12px;
+  overflow: auto;
+  flex: 1;
+}
+
+.kport-photos-thumb {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  padding: 4px;
+  background: transparent;
+  border: 1px dotted transparent;
+  cursor: pointer;
+  font-family: var(--font-win98);
+  font-size: 11px;
+  text-align: center;
+  color: var(--win98-text);
+}
+.kport-photos-thumb:hover {
+  background: rgba(10, 36, 106, 0.1);
+}
+.kport-photos-thumb:focus-visible {
+  outline: 1px dotted #000;
+  outline-offset: -2px;
+}
+.kport-photos-thumb img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  background: #f0f0f0;
+}
+.kport-photos-thumb .thumb-label {
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kport-photos-empty {
+  padding: 24px;
+  text-align: center;
+  color: #555;
+}
+.kport-photos-empty code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: var(--win98-window-bg);
+  padding: 1px 4px;
+  border: 1px solid #808080;
+}
+
+.kport-photos-lightbox {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+  padding: 12px;
+  background: #000;
+  color: #fff;
+}
+.kport-photos-lightbox img {
+  max-width: 100%;
+  max-height: 70vh;
+  margin: 0 auto;
+  display: block;
+  background: #111;
+}
+
+.kport-photos-meta {
+  margin: 12px 0 0;
+  padding: 12px;
+  background: #fff;
+  color: var(--win98-text);
+  font-size: 11px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px 16px;
+}
+.kport-photos-meta .row {
+  display: flex;
+  flex-direction: column;
+}
+.kport-photos-meta .row.full {
+  grid-column: 1 / -1;
+}
+.kport-photos-meta dt {
+  font-size: 10px;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.kport-photos-meta dd {
+  margin: 0;
+  font-size: 12px;
+}
+
+/* ---------- Projects app ---------- */
+
+.kport-projects-app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #fff;
+  font-family: var(--font-win98);
+  font-size: 12px;
+}
+
+.kport-projects-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: var(--win98-window-bg);
+  border-bottom: 1px solid #808080;
+  font-size: 11px;
+}
+
+.kport-projects-back {
+  background: var(--win98-window-bg);
+  border: 2px solid;
+  border-color: var(--win98-window-border-light)
+    var(--win98-window-border-dark) var(--win98-window-border-dark)
+    var(--win98-window-border-light);
+  box-shadow: inset 1px 1px 0 #dfdfdf, inset -1px -1px 0 #404040;
+  padding: 2px 8px;
+  font-family: var(--font-win98);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.kport-projects-title {
+  font-weight: 700;
+}
+.kport-projects-title .year {
+  color: #555;
+  font-weight: 400;
+}
+.kport-projects-count {
+  margin-left: auto;
+  color: #555;
+}
+
+.kport-projects-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  flex: 1;
+}
+
+.kport-projects-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  grid-template-areas:
+    'title meta'
+    'summary summary';
+  gap: 2px 12px;
+  padding: 8px 12px;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid #e0e0e0;
+  font-family: var(--font-win98);
+  font-size: 12px;
+  cursor: pointer;
+}
+.kport-projects-row:hover {
+  background: rgba(10, 36, 106, 0.08);
+}
+.kport-projects-row .row-title {
+  grid-area: title;
+  font-weight: 700;
+}
+.kport-projects-row .row-meta {
+  grid-area: meta;
+  color: #555;
+}
+.kport-projects-row .row-summary {
+  grid-area: summary;
+  color: #333;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.kport-projects-detail {
+  padding: 12px 16px;
+  overflow: auto;
+  flex: 1;
+}
+.kport-projects-detail .summary {
+  margin: 0 0 12px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.kport-projects-detail .stack {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.kport-projects-detail .stack li {
+  background: var(--win98-window-bg);
+  border: 1px solid #808080;
+  padding: 1px 6px;
+  font-size: 11px;
+  color: var(--win98-text);
+}
+.kport-projects-detail .links {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.kport-projects-detail .links a {
+  color: var(--color-accent);
+  font-size: 12px;
+}
+
+.kport-projects-body {
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--win98-text);
+}
+.kport-projects-body h2,
+.kport-projects-body h3 {
+  font-family: var(--font-win98);
+  margin: 12px 0 6px;
+}
+.kport-projects-body h2 {
+  font-size: 13px;
+}
+.kport-projects-body h3 {
+  font-size: 12px;
+}
+.kport-projects-body p,
+.kport-projects-body ul,
+.kport-projects-body ol {
+  margin: 0 0 10px;
+}
+.kport-projects-body code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: #f0f0f0;
+  border: 1px solid #ccc;
+  padding: 0 4px;
+  font-size: 0.9em;
+}
+.kport-projects-body pre {
+  background: #f5f5f5;
+  border: 1px inset #c0c0c0;
+  padding: 8px;
+  font-size: 11px;
+  overflow-x: auto;
+}
+.kport-projects-body pre code {
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+
+.kport-projects-empty {
+  padding: 24px;
+  text-align: center;
+  color: #555;
+}
+
+/* ---------- Notepad app ---------- */
+
+.kport-notepad-app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #fff;
+  font-family: 'Lucida Console', 'Courier New', monospace;
+}
+
+.kport-notepad-menu {
+  display: flex;
+  gap: 12px;
+  padding: 2px 8px;
+  background: var(--win98-window-bg);
+  border-bottom: 1px solid #808080;
+  font-family: var(--font-win98);
+  font-size: 11px;
+  color: var(--win98-text);
+}
+.kport-notepad-menu span {
+  cursor: default;
+  padding: 1px 4px;
+}
+.kport-notepad-menu span:first-letter {
+  text-decoration: underline;
+}
+
+.kport-notepad-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  background: var(--win98-window-bg);
+  border-bottom: 1px solid #808080;
+  font-family: var(--font-win98);
+  font-size: 11px;
+}
+
+.kport-notepad-back {
+  background: var(--win98-window-bg);
+  border: 2px solid;
+  border-color: var(--win98-window-border-light)
+    var(--win98-window-border-dark) var(--win98-window-border-dark)
+    var(--win98-window-border-light);
+  box-shadow: inset 1px 1px 0 #dfdfdf, inset -1px -1px 0 #404040;
+  padding: 1px 6px;
+  font-family: var(--font-win98);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.kport-notepad-doc-title {
+  font-weight: 700;
+  color: var(--win98-text);
+}
+
+.kport-notepad-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  flex: 1;
+  background: #fff;
+  font-family: 'Lucida Console', 'Courier New', monospace;
+  font-size: 13px;
+}
+
+.kport-notepad-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    'filename date'
+    'excerpt excerpt';
+  gap: 2px 12px;
+  padding: 6px 12px;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+}
+.kport-notepad-row:hover {
+  background: #0a246a;
+  color: #fff;
+}
+.kport-notepad-row .row-filename {
+  grid-area: filename;
+  font-weight: 700;
+}
+.kport-notepad-row .row-date {
+  grid-area: date;
+  color: #666;
+}
+.kport-notepad-row:hover .row-date {
+  color: #cfcfcf;
+}
+.kport-notepad-row .row-excerpt {
+  grid-area: excerpt;
+  font-size: 11px;
+  color: #444;
+  line-height: 1.4;
+}
+.kport-notepad-row:hover .row-excerpt {
+  color: #d0d0d0;
+}
+
+.kport-notepad-doc {
+  padding: 16px 24px;
+  overflow: auto;
+  flex: 1;
+  font-family: 'Lucida Console', 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  background: #fff;
+  color: #000;
+}
+.kport-notepad-doc h1 {
+  font-family: var(--font-win98);
+  font-size: 18px;
+  margin: 0 0 4px;
+}
+.kport-notepad-doc-meta {
+  margin: 0 0 16px;
+  font-size: 11px;
+  color: #666;
+  font-family: var(--font-win98);
+  display: flex;
+  gap: 12px;
+}
+
+.kport-notepad-doc-body h2 {
+  font-family: var(--font-win98);
+  font-size: 14px;
+  margin: 16px 0 6px;
+}
+.kport-notepad-doc-body h3 {
+  font-family: var(--font-win98);
+  font-size: 13px;
+  margin: 12px 0 4px;
+}
+.kport-notepad-doc-body p,
+.kport-notepad-doc-body ul,
+.kport-notepad-doc-body ol {
+  margin: 0 0 12px;
+}
+.kport-notepad-doc-body code {
+  background: #f0f0f0;
+  border: 1px solid #ccc;
+  padding: 0 4px;
+  font-size: 0.95em;
+}
+.kport-notepad-doc-body pre {
+  background: #1a1a1a;
+  color: #f0f0f0;
+  padding: 10px 12px;
+  font-size: 12px;
+  overflow-x: auto;
+}
+.kport-notepad-doc-body pre code {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  color: inherit;
+}
+.kport-notepad-doc-body blockquote {
+  margin: 12px 0;
+  padding-left: 12px;
+  border-left: 3px solid var(--color-accent);
+  color: #444;
+  font-style: italic;
+}
+.kport-notepad-doc-body a {
+  color: var(--color-accent);
+}
+
+.kport-notepad-empty {
+  padding: 24px;
+  color: #555;
+}
+
+/* ---------- Boot sequence ---------- */
+
+.kport-boot {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  background: #000;
+  color: #c0c0c0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  outline: none;
+}
+
+.kport-boot-bios {
+  font-family: 'Lucida Console', 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #c0c0c0;
+  white-space: pre;
+  margin: 0;
+  padding: 24px;
+  align-self: flex-start;
+  width: 100%;
+  max-width: 720px;
+}
+.kport-boot-bios span {
+  display: inline;
+  opacity: 0;
+  animation: kport-boot-line 240ms ease-out forwards;
+}
+@keyframes kport-boot-line {
+  to {
+    opacity: 1;
+  }
+}
+
+.kport-boot-splash {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  color: #fff;
+  animation: kport-boot-splash-in 200ms ease-out;
+}
+@keyframes kport-boot-splash-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.kport-boot-splash-flag {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 4px;
+  transform: skewX(-12deg);
+  width: 96px;
+  height: 80px;
+}
+.kport-boot-splash-flag .pane {
+  border-radius: 2px;
+}
+.kport-boot-splash-flag .red {
+  background: #e84d4d;
+}
+.kport-boot-splash-flag .green {
+  background: #4dc04d;
+}
+.kport-boot-splash-flag .blue {
+  background: #4d8de8;
+}
+.kport-boot-splash-flag .yellow {
+  background: #f6d24d;
+}
+.kport-boot-splash-title {
+  font-family: var(--font-win98);
+  font-size: 36px;
+  font-weight: 700;
+  margin: 8px 0 0;
+  letter-spacing: -0.02em;
+}
+.kport-boot-splash-subtitle {
+  font-family: var(--font-win98);
+  font-size: 13px;
+  margin: 0;
+  color: #c0c0c0;
+}
+
+.kport-boot-skip {
+  position: absolute;
+  bottom: 24px;
+  right: 24px;
+  margin: 0;
+  font-family: 'Lucida Console', 'Courier New', monospace;
+  font-size: 11px;
+  color: #666;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kport-boot-bios span,
+  .kport-boot-splash {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---------- Screensaver ---------- */
+
+.kport-screensaver {
+  position: fixed;
+  inset: 0;
+  z-index: 99998;
+  background: #000;
+  cursor: none;
+}
+.kport-screensaver canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}

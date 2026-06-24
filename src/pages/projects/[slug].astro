@@ -1,0 +1,181 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import MobileHeader from '../../components/mobile/MobileHeader.astro';
+import ContactFooter from '../../components/mobile/ContactFooter.astro';
+import { Image, getImage } from 'astro:assets';
+import { getCollection, render } from 'astro:content';
+
+export async function getStaticPaths() {
+  const projects = await getCollection('projects');
+  return projects.map((project) => ({
+    params: { slug: project.id },
+    props: { project },
+  }));
+}
+
+const { project } = Astro.props;
+const { Content } = await render(project);
+
+const title = `${project.data.title} · Keenan Akit`;
+const description = project.data.summary;
+
+// OG image: use the project's cover image if set, otherwise fall back to
+// the default brand image (referenced in BaseLayout).
+let ogImageUrl: string | undefined = undefined;
+if (project.data.image) {
+  const og = await getImage({
+    src: project.data.image,
+    format: 'jpeg',
+    width: 1200,
+    height: 630,
+    quality: 85,
+  });
+  ogImageUrl = og.src;
+}
+---
+
+<BaseLayout title={title} description={description} ogImage={ogImageUrl}>
+  <MobileHeader tagline={`${project.data.year}`} />
+  <main id="main" class="project-page" data-only="mobile">
+    <a href="/projects" class="back-link" data-astro-prefetch>← All projects</a>
+
+    <header class="header">
+      <h1>{project.data.title}</h1>
+      <p class="year tnum">{project.data.year}{project.data.role && ` · ${project.data.role}`}</p>
+      <p class="summary">{project.data.summary}</p>
+      {project.data.stack.length > 0 && (
+        <ul class="stack">
+          {project.data.stack.map((s) => <li>{s}</li>)}
+        </ul>
+      )}
+      {project.data.links.length > 0 && (
+        <ul class="links">
+          {project.data.links.map((l) => (
+            <li>
+              <a href={l.url} target="_blank" rel="noopener">{l.label} →</a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </header>
+
+    {project.data.image && (
+      <Image
+        src={project.data.image}
+        alt={project.data.title}
+        widths={[480, 720, 960, 1280]}
+        sizes="(min-width: 720px) 720px, 100vw"
+        format="avif"
+        quality={80}
+        class="cover"
+      />
+    )}
+
+    <article class="body">
+      <Content />
+    </article>
+  </main>
+  <ContactFooter />
+</BaseLayout>
+
+<style>
+  .project-page {
+    padding: var(--space-4) 0 var(--space-7);
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  .back-link {
+    display: inline-block;
+    padding: 0 var(--space-5);
+    font-size: var(--text-meta);
+    color: var(--color-link);
+    text-decoration: none;
+    margin-bottom: var(--space-3);
+  }
+
+  .header {
+    padding: 0 var(--space-5);
+    margin-bottom: var(--space-5);
+  }
+
+  h1 {
+    margin: 0 0 var(--space-2);
+  }
+
+  .year {
+    margin: 0 0 var(--space-3);
+    color: var(--color-text-tertiary);
+    font-size: var(--text-meta);
+  }
+
+  .summary {
+    margin: 0 0 var(--space-4);
+    color: var(--color-text-secondary);
+    line-height: 1.55;
+  }
+
+  .stack {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 var(--space-3);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+  }
+  .stack li {
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border);
+    padding: 2px 8px;
+    font-size: var(--text-caption);
+    color: var(--color-text-secondary);
+  }
+
+  .links {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+  .links a {
+    font-size: var(--text-meta);
+    color: var(--color-link);
+  }
+
+  .cover {
+    display: block;
+    width: 100%;
+    height: auto;
+    background: var(--color-bg-elevated);
+    border-block: 1px solid var(--color-border);
+  }
+
+  .body {
+    padding: var(--space-5);
+    line-height: 1.65;
+    color: var(--color-text-primary);
+  }
+  .body :global(h2) {
+    margin-top: var(--space-6);
+    margin-bottom: var(--space-3);
+  }
+  .body :global(h3) {
+    margin-top: var(--space-5);
+    margin-bottom: var(--space-2);
+  }
+  .body :global(p) {
+    margin: 0 0 var(--space-4);
+  }
+  .body :global(ul) {
+    padding-left: var(--space-5);
+    margin: 0 0 var(--space-4);
+  }
+  .body :global(code) {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    background: var(--color-bg-elevated);
+    padding: 2px 6px;
+    font-size: 0.9em;
+  }
+</style>

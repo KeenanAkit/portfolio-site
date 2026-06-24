@@ -1,0 +1,141 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import MobileHeader from '../../components/mobile/MobileHeader.astro';
+import ContactFooter from '../../components/mobile/ContactFooter.astro';
+import { getCollection } from 'astro:content';
+
+const projects = (await getCollection('projects')).sort(
+  (a, b) => b.data.year - a.data.year
+);
+
+const title = 'Projects · Keenan Akit';
+const description = 'Side projects, weekend builds, and things I shipped on purpose.';
+---
+
+<BaseLayout title={title} description={description}>
+  <MobileHeader tagline="Projects" />
+  <main id="main" class="projects-page" data-only="mobile">
+    <h1>Projects</h1>
+
+    {
+      projects.length === 0 ? (
+        <p class="empty">No projects yet.</p>
+      ) : (
+        <ul class="project-list">
+          {projects.map((p) => (
+            <li class="project">
+              <h2>
+                <a href={`/projects/${p.id}`} data-astro-prefetch>{p.data.title}</a>
+              </h2>
+              <p class="year tnum">{p.data.year}</p>
+              <p class="summary">{p.data.summary}</p>
+              {p.data.stack.length > 0 && (
+                <ul class="stack">
+                  {p.data.stack.map((s) => (
+                    <li>{s}</li>
+                  ))}
+                </ul>
+              )}
+              {p.data.links.length > 0 && (
+                <ul class="links">
+                  {p.data.links.map((l) => (
+                    <li>
+                      <a href={l.url} target="_blank" rel="noopener">{l.label} →</a>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </li>
+          ))}
+        </ul>
+      )
+    }
+  </main>
+  <ContactFooter />
+</BaseLayout>
+
+<style>
+  .projects-page {
+    padding: var(--space-5) var(--space-5) var(--space-7);
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    margin: 0 0 var(--space-5);
+  }
+
+  .project-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+  }
+
+  .project {
+    padding: 0 0 var(--space-5);
+    border-bottom: 1px solid var(--color-border-strong);
+  }
+  .project:last-child {
+    border-bottom: none;
+  }
+
+  .project h2 {
+    margin: 0 0 var(--space-1);
+  }
+
+  .project h2 a {
+    color: var(--color-text-primary);
+    text-decoration: none;
+  }
+
+  .year {
+    margin: 0 0 var(--space-3);
+    color: var(--color-text-tertiary);
+    font-size: var(--text-meta);
+  }
+
+  .summary {
+    margin: 0 0 var(--space-3);
+    color: var(--color-text-secondary);
+    line-height: 1.55;
+  }
+
+  .stack {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 var(--space-3);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+  }
+
+  .stack li {
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border);
+    padding: 2px 8px;
+    font-size: var(--text-caption);
+    color: var(--color-text-secondary);
+  }
+
+  .links {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+
+  .links a {
+    font-size: var(--text-meta);
+    color: var(--color-link);
+  }
+
+  .empty {
+    color: var(--color-text-secondary);
+    font-size: var(--text-meta);
+  }
+</style>

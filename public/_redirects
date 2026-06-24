@@ -1,0 +1,7 @@
+# Cloudflare Pages 301s for legacy URLs.
+#
+# /photos/:slug used to serve a single photo page. Photos.exe was restructured
+# to a 5-pattern hierarchy, so the canonical URL is now /photos/gallery/:slug.
+# We keep the legacy path alive as a 301 so inbound links and old bookmarks
+# don't 404.
+/photos/:slug   /photos/gallery/:slug   301
