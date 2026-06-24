@@ -16,8 +16,11 @@ export interface PhotoListEntry {
   titleIsPlaceholder: boolean;
   /** Full-resolution image URL for the lightbox (e.g. /_astro/...avif). */
   imageSrc: string;
-  /** Thumbnail-sized URL used in the grid. */
+  /** Smallest thumbnail variant, used as the grid img `src` fallback. */
   thumbSrc: string;
+  /** Responsive srcSet ("url 240w, url 480w, ...") so the grid downloads a
+   *  variant matched to each frame's rendered width instead of the original. */
+  thumbSrcSet: string;
   /** Native width / height of the original photo. The justified gallery grid
    *  uses it to size each frame within an equal-height row. */
   aspectRatio: number;

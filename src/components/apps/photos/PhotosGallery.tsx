@@ -281,7 +281,16 @@ function JustifiedGrid({
                   onClick={() => onOpen(p.slug)}
                   aria-label={`Open ${p.titleIsPlaceholder ? 'photograph' : p.title}`}
                 >
-                  <img src={p.thumbSrc} alt="" loading="lazy" />
+                  <img
+                    src={p.thumbSrc}
+                    srcSet={p.thumbSrcSet}
+                    // The frame's rendered width is aspectRatio * rowHeight;
+                    // telling the browser that lets it pick the right variant
+                    // (240 / 480 / 720) instead of over-fetching.
+                    sizes={`${Math.round(p.aspectRatio * row.height)}px`}
+                    alt=""
+                    loading="lazy"
+                  />
                   {!p.titleIsPlaceholder && (
                     <span className="kport-gallery__frame-label">{p.title}</span>
                   )}

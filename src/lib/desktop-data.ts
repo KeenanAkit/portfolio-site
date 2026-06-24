@@ -50,12 +50,17 @@ export async function loadDesktopData(): Promise<DesktopData> {
 
   const photos: PhotoListEntry[] = await Promise.all(
     allPhotos.map(async (p) => {
-      // getImage on remote photos: pass widths array (responsive set) so
-      // sharp resizes each variant proportionally from the inferred
-      // original. With a single `width` value sharp constrains width
-      // correctly but leaves height at the original, producing broken
-      // sliver-shaped AVIFs. The widths array path goes through Astro's
-      // responsive pipeline which preserves aspect ratio per variant.
+      // getImage on remote photos: pass a widths array (responsive set) so
+      // sharp resizes each variant proportionally from the inferred original.
+      // A single `width` value leaves the height at the original, producing
+      // broken sliver-shaped AVIFs; the widths path preserves aspect ratio
+      // per variant.
+      //
+      // CAUTION: with `widths`, `.src` is the untouched multi-megapixel
+      // ORIGINAL (the no-srcset fallback). The resized variants live only in
+      // `.srcSet`. Always serve from the srcSet (see `smallestVariant` +
+      // the `srcSet`/`sizes` on the grid img) or the grid downloads 5000px
+      // originals for 200px frames.
       const full = await getImage({
         src: p.data.image,
         inferSize: true,
@@ -68,7 +73,7 @@ export async function loadDesktopData(): Promise<DesktopData> {
         inferSize: true,
         format: 'avif',
         quality: 70,
-        widths: [320],
+        widths: [240, 480, 720],
       });
       // The justified gallery grid packs each row to a shared height, so it
       // needs every photo's native aspect ratio up front to size frames
@@ -80,8 +85,9 @@ export async function loadDesktopData(): Promise<DesktopData> {
         slug: p.id,
         title: p.data.title,
         titleIsPlaceholder: isPlaceholderTitle(p.data.title, p.id),
-        imageSrc: full.src,
-        thumbSrc: thumb.src,
+        imageSrc: smallestVariant(full),
+        thumbSrc: smallestVariant(thumb),
+        thumbSrcSet: thumb.srcSet.attribute,
         aspectRatio,
         date: p.data.date.toISOString(),
         location: p.data.location,
@@ -145,6 +151,14 @@ export async function loadDesktopData(): Promise<DesktopData> {
   );
 
   return { photos, projects, posts, categories };
+}
+
+/** Pull the smallest resized URL out of a getImage result. Used as the `src`
+ *  fallback because the result's own `.src` is the full-size original (see the
+ *  CAUTION note at the call site). Falls back to `.src` only if the srcSet is
+ *  somehow empty. */
+function smallestVariant(img: Awaited<ReturnType<typeof getImage>>): string {
+  return img.srcSet.values[0]?.url ?? img.src;
 }
 
 /** Default aspect ratio when a remote probe fails: 3:2, the dominant 35mm
