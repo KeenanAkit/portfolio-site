@@ -91,8 +91,8 @@ const posts = defineCollection({
 //   dusk      cozy warm afternoon museum light (default / overview)
 //   amber     golden hour (landscapes)
 //   sodium    warm lantern night (street)
-//   tungsten  tungsten warm interior (portraits)
-//   moon      moonlit silver (black-and-white)
+//   tungsten  tungsten warm interior (motorsports)
+//   moon      moonlit silver (events)
 const collections_ = defineCollection({
   loader: glob({ pattern: '**/*.md', base: './src/content/collections' }),
   schema: () =>

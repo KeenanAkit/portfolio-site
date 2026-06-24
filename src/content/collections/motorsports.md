@@ -1,8 +1,8 @@
 ---
-title: "Portraits"
+title: "Motorsports"
 description: "TODO. Write a one-line frontmatter description in Keenan's voice."
 filter:
-  tag: "portraits"
+  tag: "motorsports"
 featured: true
 order: 2
 lighting: tungsten
@@ -10,4 +10,5 @@ lighting: tungsten
 
 TODO: longer body copy if you want it on the category page.
 
-Cover is the Toronto shot as a placeholder. Swap for a portrait once added.
+Cover auto-picks the newest motorsports shot. The tungsten lighting variant
+gives the gallery a warm pit-garage glow.
