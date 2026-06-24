@@ -13,6 +13,7 @@
 
 import { getCollection } from 'astro:content';
 import { getImage } from 'astro:assets';
+import { inferRemoteSize } from 'astro/assets/utils';
 import { marked } from 'marked';
 
 import { isPlaceholderTitle } from './photo-display';
@@ -69,12 +70,19 @@ export async function loadDesktopData(): Promise<DesktopData> {
         quality: 70,
         widths: [320],
       });
+      // The justified gallery grid packs each row to a shared height, so it
+      // needs every photo's native aspect ratio up front to size frames
+      // without a layout shift. Probe the remote original's dimensions
+      // (header bytes only, no extra image emitted). A failed probe falls
+      // back to 3:2, the dominant 35mm frame in this library.
+      const aspectRatio = await inferPhotoAspectRatio(p.data.image);
       return {
         slug: p.id,
         title: p.data.title,
         titleIsPlaceholder: isPlaceholderTitle(p.data.title, p.id),
         imageSrc: full.src,
         thumbSrc: thumb.src,
+        aspectRatio,
         date: p.data.date.toISOString(),
         location: p.data.location,
         camera: p.data.camera,
@@ -137,6 +145,24 @@ export async function loadDesktopData(): Promise<DesktopData> {
   );
 
   return { photos, projects, posts, categories };
+}
+
+/** Default aspect ratio when a remote probe fails: 3:2, the dominant 35mm
+ *  film frame in this library, so a fallback frame still sits in a row
+ *  without distorting it. */
+const DEFAULT_ASPECT_RATIO = 3 / 2;
+
+/** Probe a remote photo's native dimensions and return width / height. Any
+ *  probe failure (network, unsupported format) degrades to the 3:2 default
+ *  rather than failing the whole build over one bad image. */
+async function inferPhotoAspectRatio(image: string): Promise<number> {
+  try {
+    const { width, height } = await inferRemoteSize(image);
+    if (width > 0 && height > 0) return width / height;
+  } catch {
+    // fall through to the default
+  }
+  return DEFAULT_ASPECT_RATIO;
 }
 
 /** Pick the cover image for a category. Honours an explicit `cover` URL if

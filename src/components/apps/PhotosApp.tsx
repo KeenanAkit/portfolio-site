@@ -18,6 +18,9 @@ export interface PhotoListEntry {
   imageSrc: string;
   /** Thumbnail-sized URL used in the grid. */
   thumbSrc: string;
+  /** Native width / height of the original photo. The justified gallery grid
+   *  uses it to size each frame within an equal-height row. */
+  aspectRatio: number;
   /** ISO date string. */
   date: string;
   location?: string;

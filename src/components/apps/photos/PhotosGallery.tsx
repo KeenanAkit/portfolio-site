@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useWindowManager, type WinId } from '../../desktop/windowManager';
 import { readPhotosState, type LightingCategory } from './types';
 import { AmbientEffects } from './AmbientEffects';
@@ -188,23 +188,10 @@ export function PhotosGallery({ id, photos, categories }: Props) {
         filteredPhotos.length === 0 ? (
           <EmptyState category={state.category} />
         ) : (
-          <ul className="kport-gallery__grid" role="list">
-            {filteredPhotos.map((p) => (
-              <li key={p.slug}>
-                <button
-                  type="button"
-                  className="kport-gallery__frame"
-                  onClick={() => setAppState(id, { selectedSlug: p.slug })}
-                  aria-label={`Open ${p.titleIsPlaceholder ? 'photograph' : p.title}`}
-                >
-                  <img src={p.thumbSrc} alt="" loading="lazy" />
-                  {!p.titleIsPlaceholder && (
-                    <span className="kport-gallery__frame-label">{p.title}</span>
-                  )}
-                </button>
-              </li>
-            ))}
-          </ul>
+          <JustifiedGrid
+            photos={filteredPhotos}
+            onOpen={(slug) => setAppState(id, { selectedSlug: slug })}
+          />
         )
       ) : (
         <CategoriesLanding
@@ -219,6 +206,136 @@ export function PhotosGallery({ id, photos, categories }: Props) {
       <AmbientEffects winId={id} />
     </div>
   );
+}
+
+/** Gutter between frames, in px. Matches the tight spacing the live site
+ *  uses so panoramas and portraits read as one wall, not isolated tiles. */
+const GRID_GAP = 10;
+
+/** A packed row: the photos in it plus the shared height they render at. */
+interface JustifiedRow {
+  photos: PhotoListEntry[];
+  height: number;
+}
+
+/**
+ * The photo wall. Packs photos into equal-height rows whose widths fill the
+ * window (Flickr / Adobe-Portfolio "justified" layout), so every frame keeps
+ * its native aspect ratio: portraits stay tall, panoramas run wide, nothing
+ * is cropped.
+ *
+ * The window is draggable-resizable, so the row packing is recomputed from
+ * the live content width via a ResizeObserver rather than baked at build
+ * time. Layout math is pure (`packRows`) and memoised on [photos, width].
+ */
+function JustifiedGrid({
+  photos,
+  onOpen,
+}: {
+  photos: PhotoListEntry[];
+  onOpen: (slug: string) => void;
+}) {
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const [width, setWidth] = useState(0);
+
+  // Measure the scroll container's content width and track it as the window
+  // resizes. useLayoutEffect so the first measurement lands before paint and
+  // we don't flash an unpacked (zero-width) grid.
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const measure = () => setWidth(el.clientWidth);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // Narrow windows get shorter target rows so they still fit 2-3 photos
+  // across instead of one giant frame per row.
+  const targetHeight = width > 0 && width < 520 ? 130 : 190;
+  const rows = useMemo(
+    () => packRows(photos, width, targetHeight),
+    [photos, width, targetHeight]
+  );
+
+  return (
+    <div ref={scrollRef} className="kport-gallery__grid" role="list">
+      {width > 0 &&
+        rows.map((row, ri) => (
+          <div
+            key={ri}
+            className="kport-gallery__grid-row"
+            role="presentation"
+            style={{ height: `${row.height}px` }}
+          >
+            {row.photos.map((p) => (
+              <div key={p.slug} role="listitem" style={{ flex: '0 0 auto' }}>
+                <button
+                  type="button"
+                  className="kport-gallery__frame"
+                  style={{
+                    width: `${p.aspectRatio * row.height}px`,
+                    height: `${row.height}px`,
+                  }}
+                  onClick={() => onOpen(p.slug)}
+                  aria-label={`Open ${p.titleIsPlaceholder ? 'photograph' : p.title}`}
+                >
+                  <img src={p.thumbSrc} alt="" loading="lazy" />
+                  {!p.titleIsPlaceholder && (
+                    <span className="kport-gallery__frame-label">{p.title}</span>
+                  )}
+                </button>
+              </div>
+            ))}
+          </div>
+        ))}
+    </div>
+  );
+}
+
+/**
+ * Pack photos into justified rows. Each row grows until adding another photo
+ * would overflow `containerWidth` at `targetHeight`, then the row's height is
+ * solved so its frames exactly fill the width. The final, partial row keeps
+ * `targetHeight` (left-aligned) instead of ballooning a stray photo or two to
+ * full width, and is only shrunk if a single wide frame wouldn't otherwise
+ * fit. Returns [] until the container has been measured (width 0).
+ */
+function packRows(
+  photos: PhotoListEntry[],
+  containerWidth: number,
+  targetHeight: number
+): JustifiedRow[] {
+  if (containerWidth <= 0 || photos.length === 0) return [];
+
+  const rows: JustifiedRow[] = [];
+  let current: PhotoListEntry[] = [];
+  let arSum = 0;
+
+  const rowHeight = (count: number, sum: number) =>
+    (containerWidth - GRID_GAP * (count - 1)) / sum;
+
+  for (const photo of photos) {
+    current.push(photo);
+    arSum += photo.aspectRatio;
+    // Width this row would occupy if laid out at the target height.
+    const projected = arSum * targetHeight + GRID_GAP * (current.length - 1);
+    if (projected >= containerWidth) {
+      rows.push({ photos: current, height: rowHeight(current.length, arSum) });
+      current = [];
+      arSum = 0;
+    }
+  }
+
+  if (current.length > 0) {
+    // Don't upscale a short last row; only shrink it if its frames at the
+    // target height would spill past the container (e.g. one wide panorama).
+    const fill = rowHeight(current.length, arSum);
+    rows.push({ photos: current, height: Math.min(targetHeight, fill) });
+  }
+
+  return rows;
 }
 
 /** The room's central exhibit: 6 framed cards (5 collections + an All card)

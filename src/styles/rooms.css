@@ -405,29 +405,27 @@ html[data-view='standard'] .kport-gallery__lightbox img {
   margin: 0;
   padding: 0 4px 4px 0;
   list-style: none;
-  /* Photos hang along the wall. Auto-flow horizontally so a long collection
-     scrolls left-to-right like walking the gallery — never wraps into the
-     wainscot. The minmax keeps thumbnails legible. */
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(120px, 160px);
-  grid-template-rows: 1fr;
-  gap: 24px;
-  align-items: start;
-  overflow-x: auto;
-  overflow-y: hidden;
+  /* Photos hang across the whole wall as justified rows: each row fills the
+     width, frames keep their native aspect ratio, the wall scrolls down like
+     a real gallery. Row geometry is computed in JustifiedGrid; this just
+     stacks the rows and owns the vertical scroll. */
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-x: hidden;
+  overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--room-oak-dark) transparent;
 }
 
-.kport-gallery__grid > li {
-  list-style: none;
-  /* Frame stretches to its content height, not the grid row. */
-  align-self: start;
+/* One justified row: frames sit left-to-right at the row's shared height. */
+.kport-gallery__grid-row {
+  display: flex;
+  gap: 10px;
 }
 
 .kport-gallery__grid::-webkit-scrollbar {
-  height: 6px;
+  width: 6px;
 }
 .kport-gallery__grid::-webkit-scrollbar-thumb {
   background: var(--room-oak-dark);
@@ -444,8 +442,11 @@ html[data-view='standard'] .kport-gallery__lightbox img {
 .kport-gallery__frame {
   position: relative;
   display: block;
+  /* Grid frames are sized inline (width + height from the justified row);
+     box-sizing keeps the 4px gold mat inside those dims so a row still fills
+     the wall exactly. Category cards override width/height to 100%. */
+  box-sizing: border-box;
   width: 100%;
-  aspect-ratio: 4 / 3;
   padding: 4px;
   background: var(--room-antique-gold);
   border: 0;
@@ -499,24 +500,29 @@ html[data-view='standard'] .kport-gallery__lightbox img {
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  /* The frame matches the photo's native ratio, so `cover` only trims the few
+     px the gold mat costs and the wall reads edge-to-edge with no slivers. */
+  object-fit: cover;
   background: var(--gallery-wainscot);
   image-rendering: auto;
 }
 
 .kport-gallery__frame-label {
-  /* Pin the title plaque below the frame so the gilt sprite stays
-     uncluttered. Reads like a museum's wall card under each piece. */
+  /* Wall card pinned along the bottom of the frame. An overlay (not an
+     overhang) so it never bleeds into the row packed below it. */
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -16px;
+  left: 4px;
+  right: 4px;
+  bottom: 4px;
   display: block;
+  padding: 3px 5px;
   font-size: 10px;
   letter-spacing: 1px;
   text-transform: uppercase;
-  color: var(--room-walnut-deep);
-  text-shadow: 0 1px 0 var(--room-brass-highlight);
+  text-align: left;
+  color: var(--room-cream-light);
+  background: rgba(42, 24, 8, 0.72);
+  text-shadow: 0 1px 0 var(--room-walnut-deep);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
